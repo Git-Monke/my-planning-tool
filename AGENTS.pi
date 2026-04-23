@@ -1,0 +1,4 @@
+This is a tauri application. 
+In src/ there is a svelte project which is where the frontend lives.
+In src-tauri/ there is the Rust backend which is where the backend lives.
+For anything involving the users's system (like saving and loading data from files), you write Rust functions in src-tauri and call them from the frontend.
