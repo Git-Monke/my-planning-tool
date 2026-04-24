@@ -12,7 +12,7 @@
 - `routes/+layout.ts` — Enables prerendering & disables SSR
 - `routes/+page.ts` — `redirect(303, '/tasks')` for `/`
 - `routes/+page.svelte` — Static fallback if redirect is not applied (e.g. prerender edge cases)
-- `routes/tasks/+page.svelte` — Tasks placeholder (center column)
+- `routes/tasks/+page.svelte` — Tasks page: groups tasks by date (undated → dated). Spacing uses `py-8 px-6` on the outer wrapper.
 - `routes/calendar/+page.svelte` — Calendar placeholder (center column)
 - `routes/notes/+page.svelte` — Notes placeholder (center column)
 - `lib/components/main-nav.svelte` — **Tasks / Calendar / Notes** in the **sidebar** via `SidebarMenu` + `SidebarMenuButton` (and `<a href>` with `child` snippet); each item has a **Lucide icon** (`list-todo`, `calendar`, `file-text`) and **label text hidden when the rail is collapsed** (`group-data-[state=collapsed]:hidden` so the nearest `group` with `data-state` is the shadcn sidebar root). **Tooltips** when the rail is in icon mode; active route from `$app/state` → `page.url.pathname`
