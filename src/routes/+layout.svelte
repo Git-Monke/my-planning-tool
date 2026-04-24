@@ -2,43 +2,44 @@
 	import "../app.css";
 	import type { Snippet } from "svelte";
 	import AppSidebar from "$lib/components/app-sidebar.svelte";
-	import MainNav from "$lib/components/main-nav.svelte";
+	import SidebarDesktopHover from "$lib/components/sidebar-desktop-hover.svelte";
 	import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 	import { Separator } from "$lib/components/ui/separator/index.js";
 	import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 
 	const { children }: { children: Snippet } = $props();
 
-	let sidebarOpen = $state(true);
+	let sidebarOpen = $state(false);
 </script>
 
 <Sidebar.SidebarProvider bind:open={sidebarOpen} class="min-h-svh w-full">
-	<Sidebar.Sidebar
-		collapsible="icon"
-		class="border-sidebar-border border-r"
-		variant="sidebar"
-	>
-		<Sidebar.SidebarHeader class="border-sidebar-border border-b p-2">
-			<Sidebar.SidebarGroup>
-				<Sidebar.SidebarGroupContent>
-					<Sidebar.SidebarMenu>
-						<Sidebar.SidebarMenuItem>
-							<Sidebar.SidebarMenuButton size="lg" class="font-semibold">
-								<span>App</span>
-							</Sidebar.SidebarMenuButton>
-						</Sidebar.SidebarMenuItem>
-					</Sidebar.SidebarMenu>
-				</Sidebar.SidebarGroupContent>
-			</Sidebar.SidebarGroup>
-		</Sidebar.SidebarHeader>
-		<AppSidebar />
-	</Sidebar.Sidebar>
+	<SidebarDesktopHover>
+		<Sidebar.Sidebar
+			collapsible="icon"
+			class="border-sidebar-border border-r"
+			variant="sidebar"
+		>
+			<Sidebar.SidebarHeader class="border-sidebar-border border-b p-2">
+				<Sidebar.SidebarGroup>
+					<Sidebar.SidebarGroupContent>
+						<Sidebar.SidebarMenu>
+							<Sidebar.SidebarMenuItem>
+								<Sidebar.SidebarMenuButton size="lg" class="font-semibold">
+									<span>App</span>
+								</Sidebar.SidebarMenuButton>
+							</Sidebar.SidebarMenuItem>
+						</Sidebar.SidebarMenu>
+					</Sidebar.SidebarGroupContent>
+				</Sidebar.SidebarGroup>
+			</Sidebar.SidebarHeader>
+			<AppSidebar />
+		</Sidebar.Sidebar>
+	</SidebarDesktopHover>
 	<Sidebar.SidebarInset class="min-w-0">
 		<header
-			class="bg-background/95 flex h-12 shrink-0 items-center gap-2 border-b px-2 supports-backdrop-filter:bg-background/60"
+			class="bg-background/95 flex h-12 shrink-0 items-center gap-2 border-b px-2 supports-backdrop-filter:bg-background/60 md:hidden"
 		>
 			<Sidebar.SidebarTrigger />
-			<MainNav />
 		</header>
 		<div class="flex min-h-0 w-full min-w-0 flex-1">
 			<div class="min-h-0 min-w-0 flex-1 overflow-auto p-4">

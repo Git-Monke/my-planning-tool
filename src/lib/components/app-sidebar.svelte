@@ -1,4 +1,5 @@
 <script lang="ts">
+	import MainNav from "$lib/components/main-nav.svelte";
 	import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 
 	const { class: className = "" } = $props<{
@@ -8,9 +9,9 @@
 
 <Sidebar.Content class="gap-0 {className}" id="app-sidebar">
 	<Sidebar.Group>
-		<Sidebar.GroupLabel>Sidebar</Sidebar.GroupLabel>
+		<Sidebar.GroupLabel>Navigation</Sidebar.GroupLabel>
 		<Sidebar.GroupContent>
-			<p class="text-muted-foreground px-2 text-sm">App navigation and lists will go here.</p>
+			<MainNav />
 		</Sidebar.GroupContent>
 	</Sidebar.Group>
 </Sidebar.Content>
