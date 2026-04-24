@@ -10,10 +10,7 @@
 
 <Sidebar.SidebarMenu aria-label="Main">
 	<Sidebar.SidebarMenuItem>
-		<Sidebar.SidebarMenuButton
-			isActive={pathname.startsWith("/tasks") || pathname === "/"}
-			tooltipContent="Tasks"
-		>
+		<Sidebar.SidebarMenuButton isActive={pathname.startsWith("/tasks") || pathname === "/"}>
 			{#snippet child({ props })}
 				<a
 					{...props}
@@ -27,10 +24,7 @@
 		</Sidebar.SidebarMenuButton>
 	</Sidebar.SidebarMenuItem>
 	<Sidebar.SidebarMenuItem>
-		<Sidebar.SidebarMenuButton
-			isActive={pathname.startsWith("/calendar")}
-			tooltipContent="Calendar"
-		>
+		<Sidebar.SidebarMenuButton isActive={pathname.startsWith("/calendar")}>
 			{#snippet child({ props })}
 				<a
 					{...props}
@@ -44,7 +38,7 @@
 		</Sidebar.SidebarMenuButton>
 	</Sidebar.SidebarMenuItem>
 	<Sidebar.SidebarMenuItem>
-		<Sidebar.SidebarMenuButton isActive={pathname.startsWith("/notes")} tooltipContent="Notes">
+		<Sidebar.SidebarMenuButton isActive={pathname.startsWith("/notes")}>
 			{#snippet child({ props })}
 				<a
 					{...props}

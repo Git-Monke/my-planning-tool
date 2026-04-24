@@ -2,6 +2,7 @@
 	import "../app.css";
 	import type { Snippet } from "svelte";
 	import AppSidebar from "$lib/components/app-sidebar.svelte";
+	import MainRouteShortcuts from "$lib/components/main-route-shortcuts.svelte";
 	import SidebarDesktopHover from "$lib/components/sidebar-desktop-hover.svelte";
 	import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 	import { Separator } from "$lib/components/ui/separator/index.js";
@@ -13,6 +14,7 @@
 </script>
 
 <Sidebar.SidebarProvider bind:open={sidebarOpen} class="min-h-svh w-full">
+	<MainRouteShortcuts />
 	<SidebarDesktopHover>
 		<Sidebar.Sidebar
 			collapsible="icon"
