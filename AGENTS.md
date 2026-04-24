@@ -4,6 +4,7 @@
 - **Tauri 2** (Rust backend) + **Svelte 5** (SvelteKit frontend)
 - **shadcn-svelte** (Bits UI, Tailwind) — add UI primitives with `npx shadcn-svelte add`; list/catalog in `COMPONENTS.txt` at repo root. Installed code lives under `src/lib/components/ui/`.
 - Built with Vite, TypeScript, `adapter-static`
+- **Verify builds with `npm run build`** (not `cargo check`) — this catches Svelte/TS type errors and Vite bundling issues. Use `cargo check` only if editing Rust under `src-tauri/`.
 
 ## Project Structure
 
