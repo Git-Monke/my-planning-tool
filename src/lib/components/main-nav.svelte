@@ -16,8 +16,15 @@
 	<Button
 		variant={pathname.startsWith("/calendar") ? "secondary" : "ghost"}
 		href="/calendar"
-		aria-current={pathname.startsWith("/calendar") && pathname !== "/" ? "page" : undefined}
+		aria-current={pathname.startsWith("/calendar") ? "page" : undefined}
 	>
 		Calendar
+	</Button>
+	<Button
+		variant={pathname.startsWith("/notes") ? "secondary" : "ghost"}
+		href="/notes"
+		aria-current={pathname.startsWith("/notes") ? "page" : undefined}
+	>
+		Notes
 	</Button>
 </nav>
