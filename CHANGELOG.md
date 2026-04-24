@@ -9,6 +9,6 @@
 
 ### Changed
 
-- **Layout:** Main nav moved from the top header into the **sidebar** (shadcn `SidebarMenu` + links). The desktop **sidebar starts collapsed** (icon mode) and **expands while hovered**; leaving the sidebar area (after a short delay) returns it to icon mode. The mobile header only shows the **sidebar trigger** (`md:hidden` on that bar). On `md+`, the trigger is hidden; the keyboard shortcut and hover still control the rail.
+- **Layout:** Main nav is in the **sidebar** (shadcn `SidebarMenu` + links) with **Lucide icons**; labels are **hidden when the sidebar is collapsed** so the rail shows **icons only**, with **text when expanded**. The desktop **sidebar starts collapsed** and **expands while hovered**; **collapses immediately on pointer leave** (no leave delay). The old **“App”** header block in the sidebar was **removed**. The mobile header only shows the **sidebar trigger** (`md:hidden` on that bar). On `md+`, the trigger is hidden; the keyboard shortcut and hover still control the rail.
 - **Styling (Tailwind v4):** `app.css` now includes an explicit **`@source`** glob under `src/` so utility classes and `@apply` in components are picked up reliably. Base styles set `html` / `body` to `min-h-dvh` and `antialiased` on the root.
 - **Sidebar motion:** Replaced `ease-linear` / `200ms` transitions on the main sidebar track, gap, rail, and group label with a **300ms** curve (`cubic-bezier(0.22, 1, 0.36, 1)`), with `will-change` on the sliding panel and `motion-reduce` support on the main container transition.

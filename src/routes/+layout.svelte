@@ -19,19 +19,6 @@
 			class="border-sidebar-border border-r"
 			variant="sidebar"
 		>
-			<Sidebar.SidebarHeader class="border-sidebar-border border-b p-2">
-				<Sidebar.SidebarGroup>
-					<Sidebar.SidebarGroupContent>
-						<Sidebar.SidebarMenu>
-							<Sidebar.SidebarMenuItem>
-								<Sidebar.SidebarMenuButton size="lg" class="font-semibold">
-									<span>App</span>
-								</Sidebar.SidebarMenuButton>
-							</Sidebar.SidebarMenuItem>
-						</Sidebar.SidebarMenu>
-					</Sidebar.SidebarGroupContent>
-				</Sidebar.SidebarGroup>
-			</Sidebar.SidebarHeader>
 			<AppSidebar />
 		</Sidebar.Sidebar>
 	</SidebarDesktopHover>

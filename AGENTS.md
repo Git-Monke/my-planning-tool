@@ -8,14 +8,14 @@
 ## Project Structure
 
 ### Frontend (`src/`)
-- `routes/+layout.svelte` — **Root app shell:** `SidebarProvider` + collapsible shadcn **Sidebar** (left) wrapped in `sidebar-desktop-hover.svelte` (desktop: expand on **hover** over the sidebar, **200ms** delay before **collapse** on leave; `open` starts **false** / icon mode). `SidebarInset` with a **mobile-only** top bar (`SidebarTrigger` + `md:hidden` on the header), main `<slot>`, and an **Agent chat** placeholder column (`ScrollArea` + `Separator`). Imports `../app.css`.
+- `routes/+layout.svelte` — **Root app shell:** `SidebarProvider` + collapsible shadcn **Sidebar** (left) wrapped in `sidebar-desktop-hover.svelte` (desktop: expand on **hover** over the sidebar, **instant collapse** on leave; `open` starts **false** / icon mode). **No** top “App” block inside the sidebar—`AppSidebar` is the first child. `SidebarInset` with a **mobile-only** top bar (`SidebarTrigger` + `md:hidden` on the header), main `<slot>`, and an **Agent chat** placeholder column (`ScrollArea` + `Separator`). Imports `../app.css`.
 - `routes/+layout.ts` — Enables prerendering & disables SSR
 - `routes/+page.ts` — `redirect(303, '/tasks')` for `/`
 - `routes/+page.svelte` — Static fallback if redirect is not applied (e.g. prerender edge cases)
 - `routes/tasks/+page.svelte` — Tasks placeholder (center column)
 - `routes/calendar/+page.svelte` — Calendar placeholder (center column)
 - `routes/notes/+page.svelte` — Notes placeholder (center column)
-- `lib/components/main-nav.svelte` — **Tasks / Calendar / Notes** in the **sidebar** via `SidebarMenu` + `SidebarMenuButton` (and `<a href>` with `child` snippet); **tooltips** when the rail is in icon mode; active route from `$app/state` → `page.url.pathname`
+- `lib/components/main-nav.svelte` — **Tasks / Calendar / Notes** in the **sidebar** via `SidebarMenu` + `SidebarMenuButton` (and `<a href>` with `child` snippet); each item has a **Lucide icon** (`list-todo`, `calendar`, `file-text`) and **label text hidden when the rail is collapsed** (`group-data-[state=collapsed]:hidden` so the nearest `group` with `data-state` is the shadcn sidebar root). **Tooltips** when the rail is in icon mode; active route from `$app/state` → `page.url.pathname`
 - `lib/components/app-sidebar.svelte` — `SidebarContent` with **Navigation** `Group` + `MainNav`
 - `lib/components/sidebar-desktop-hover.svelte` — `useSidebar()`; desktop only wraps the `Sidebar` root with `mouseenter` / `mouseleave` → `setOpen` (not used when `isMobile` — mobile uses the `Sheet` sidebar + trigger)
 - `lib/components/ui/*` — shadcn-svelte copy-paste components (e.g. `sidebar`, `button`, `card`, `scroll-area`, `separator`, …). **Sidebar** width/collapse motion uses a slightly longer duration and a smooth cubic easing (see `sidebar.svelte` / `sidebar-rail` / `sidebar-group-label`); `motion-reduce` disables the main panel transition.

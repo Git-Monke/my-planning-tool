@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { page } from "$app/state";
 	import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+	import CalendarIcon from "@lucide/svelte/icons/calendar";
+	import FileTextIcon from "@lucide/svelte/icons/file-text";
+	import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 
 	const pathname = $derived(page.url.pathname);
 </script>
@@ -17,7 +20,8 @@
 					href="/tasks"
 					aria-current={pathname === "/tasks" || pathname === "/" ? "page" : undefined}
 				>
-					Tasks
+					<ListTodoIcon class="shrink-0" />
+					<span class="truncate group-data-[state=collapsed]:hidden">Tasks</span>
 				</a>
 			{/snippet}
 		</Sidebar.SidebarMenuButton>
@@ -33,7 +37,8 @@
 					href="/calendar"
 					aria-current={pathname.startsWith("/calendar") ? "page" : undefined}
 				>
-					Calendar
+					<CalendarIcon class="shrink-0" />
+					<span class="truncate group-data-[state=collapsed]:hidden">Calendar</span>
 				</a>
 			{/snippet}
 		</Sidebar.SidebarMenuButton>
@@ -46,7 +51,8 @@
 					href="/notes"
 					aria-current={pathname.startsWith("/notes") ? "page" : undefined}
 				>
-					Notes
+					<FileTextIcon class="shrink-0" />
+					<span class="truncate group-data-[state=collapsed]:hidden">Notes</span>
 				</a>
 			{/snippet}
 		</Sidebar.SidebarMenuButton>

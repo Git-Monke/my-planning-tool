@@ -6,7 +6,7 @@
 
 	const sidebar = useSidebar();
 
-	const LEAVE_MS = 200;
+	const LEAVE_MS = 0;
 	let leaveTimer: ReturnType<typeof setTimeout> | undefined;
 
 	function clearLeave() {
@@ -25,6 +25,10 @@
 	function handleLeave() {
 		if (sidebar.isMobile) return;
 		clearLeave();
+		if (LEAVE_MS <= 0) {
+			sidebar.setOpen(false);
+			return;
+		}
 		leaveTimer = setTimeout(() => {
 			sidebar.setOpen(false);
 			leaveTimer = undefined;
