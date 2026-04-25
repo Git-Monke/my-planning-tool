@@ -23,8 +23,8 @@
   function getTodayString(): string {
     const today = new Date();
     const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }
 
@@ -33,8 +33,8 @@
     const date = new Date();
     date.setDate(date.getDate() + daysFromNow);
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }
 
@@ -48,11 +48,13 @@
       // Load undated tasks (no from_date filter)
       const allTasks = await invoke<Task[]>("get_tasks", { fromDate: null });
       undatedTasks = allTasks
-        .filter(t => !t.due_date)
+        .filter((t) => !t.due_date)
         .sort((a, b) => (b.priority || 0) - (a.priority || 0));
-      
+
       // Load dated tasks starting from today
-      const datedTasks = await invoke<Task[]>("get_tasks", { fromDate: initialFromDate });
+      const datedTasks = await invoke<Task[]>("get_tasks", {
+        fromDate: initialFromDate,
+      });
       allDatedTasks = datedTasks;
     } catch (error) {
       console.error("Failed to load tasks:", error);
@@ -72,7 +74,7 @@
           await loadMoreDays();
         }
       },
-      { rootMargin: "200px" } // Trigger 200px before reaching bottom
+      { rootMargin: "200px" }, // Trigger 200px before reaching bottom
     );
 
     observer.observe(sentinelEl);
@@ -83,22 +85,25 @@
   // Load more days when sentinel is visible
   async function loadMoreDays() {
     if (isLoadingMore || !hasMoreDays) return;
-    
+
     isLoadingMore = true;
-    
+
     try {
       const today = getTodayString();
-      
+
       // Extend the loaded date range by 30 more days
-      const nextDaysUpTo = getDateStringFromString(loadedDaysUpTo, DAYS_PER_LOAD);
-      
+      const nextDaysUpTo = getDateStringFromString(
+        loadedDaysUpTo,
+        DAYS_PER_LOAD,
+      );
+
       // Fetch all tasks from today up to the new date range
       const newTasks = await invoke<Task[]>("get_tasks", { fromDate: today });
-      
+
       // Update state
       allDatedTasks = newTasks;
       loadedDaysUpTo = nextDaysUpTo;
-      
+
       // Continue allowing infinite scroll (user can keep scrolling indefinitely)
     } catch (error) {
       console.error("Failed to load more tasks:", error);
@@ -109,12 +114,12 @@
 
   // Helper to add days to a YYYY-MM-DD string
   function getDateStringFromString(dateStr: string, daysToAdd: number): string {
-    const [year, month, day] = dateStr.split('-').map(Number);
+    const [year, month, day] = dateStr.split("-").map(Number);
     const date = new Date(year, month - 1, day);
     date.setDate(date.getDate() + daysToAdd);
     const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
   }
 
@@ -132,8 +137,8 @@
           due_date: date || null,
           due_time: null,
           duration: null,
-          completed: false
-        }
+          completed: false,
+        },
       });
       // Add to correct list based on date
       if (date) {
@@ -159,26 +164,32 @@
           due_date: task.due_date || null,
           due_time: task.due_time || null,
           duration: task.duration || null,
-          completed: task.completed
-        }
+          completed: task.completed,
+        },
       });
-      
+
       // Update in appropriate list
       if (updatedTask.due_date) {
         // Move to dated tasks
-        undatedTasks = undatedTasks.filter(t => t.id !== updatedTask.id);
-        const existingIndex = allDatedTasks.findIndex(t => t.id === updatedTask.id);
+        undatedTasks = undatedTasks.filter((t) => t.id !== updatedTask.id);
+        const existingIndex = allDatedTasks.findIndex(
+          (t) => t.id === updatedTask.id,
+        );
         if (existingIndex >= 0) {
-          allDatedTasks = allDatedTasks.map(t => t.id === updatedTask.id ? updatedTask : t);
+          allDatedTasks = allDatedTasks.map((t) =>
+            t.id === updatedTask.id ? updatedTask : t,
+          );
         } else {
           allDatedTasks = [...allDatedTasks, updatedTask];
         }
       } else {
         // Move to undated tasks
-        allDatedTasks = allDatedTasks.filter(t => t.id !== updatedTask.id);
-        undatedTasks = undatedTasks.map(t => t.id === updatedTask.id ? updatedTask : t);
+        allDatedTasks = allDatedTasks.filter((t) => t.id !== updatedTask.id);
+        undatedTasks = undatedTasks.map((t) =>
+          t.id === updatedTask.id ? updatedTask : t,
+        );
       }
-      
+
       if (editingTaskId === task.id) {
         editingTaskId = null;
         newTaskId = null;
@@ -191,8 +202,8 @@
   async function handleDeleteTask(id: string) {
     try {
       await invoke("delete_task", { id });
-      undatedTasks = undatedTasks.filter(t => t.id !== id);
-      allDatedTasks = allDatedTasks.filter(t => t.id !== id);
+      undatedTasks = undatedTasks.filter((t) => t.id !== id);
+      allDatedTasks = allDatedTasks.filter((t) => t.id !== id);
       if (editingTaskId === id) {
         editingTaskId = null;
       }
@@ -215,7 +226,9 @@
   }
 
   function handleCancelEdit(taskId: string) {
-    const task = undatedTasks.find(t => t.id === taskId) || allDatedTasks.find(t => t.id === taskId);
+    const task =
+      undatedTasks.find((t) => t.id === taskId) ||
+      allDatedTasks.find((t) => t.id === taskId);
     if (task && !task.title.trim()) {
       // Empty new task - delete it
       handleDeleteTask(taskId);
@@ -228,7 +241,7 @@
   const datedGroups = $derived.by(() => {
     const today = getTodayString();
     const taskMap = new Map<string, Task[]>();
-    
+
     // Group tasks by date
     allDatedTasks.forEach((t) => {
       const date = t.due_date!;
@@ -237,47 +250,52 @@
       }
       taskMap.get(date)!.push(t);
     });
-    
+
     // Generate groups for every day from today to loadedDaysUpTo
     const groups: { date: string; formattedDate: string; tasks: Task[] }[] = [];
     let currentDate = new Date(today + "T00:00:00");
     const endDate = new Date(loadedDaysUpTo + "T00:00:00");
-    
+
     while (currentDate <= endDate) {
       const y = currentDate.getFullYear();
-      const m = String(currentDate.getMonth() + 1).padStart(2, '0');
-      const d = String(currentDate.getDate()).padStart(2, '0');
+      const m = String(currentDate.getMonth() + 1).padStart(2, "0");
+      const d = String(currentDate.getDate()).padStart(2, "0");
       const dateStr = `${y}-${m}-${d}`;
       const dayTasks = taskMap.get(dateStr) || [];
-      
+
       // Sort tasks: by priority descending, then by due_time ascending
       dayTasks.sort((a, b) => {
         const pDiff = (b.priority || 0) - (a.priority || 0);
         if (pDiff !== 0) return pDiff;
-        if (a.due_time && b.due_time) return a.due_time.localeCompare(b.due_time);
+        if (a.due_time && b.due_time)
+          return a.due_time.localeCompare(b.due_time);
         if (a.due_time) return -1;
         if (b.due_time) return 1;
         return 0;
       });
-      
+
       groups.push({
         date: dateStr,
         formattedDate: formatDate(dateStr),
         tasks: dayTasks,
       });
-      
+
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     return groups;
   });
 
   function formatDate(dateStr: string) {
-    const [year, month, day] = dateStr.split('-').map(Number);
+    const [year, month, day] = dateStr.split("-").map(Number);
     const date = new Date(year, month - 1, day);
-    
+
     const today = new Date();
-    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayDate = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
 
     const tomorrow = new Date(todayDate);
     tomorrow.setDate(todayDate.getDate() + 1);
@@ -295,55 +313,55 @@
 
 <div class="h-full flex flex-col">
   <!-- Header -->
-  <div class="flex items-center justify-between px-4 py-3 border-b">
+  <div class="flex items-center justify-between px-4 py-4 border-b">
     <h1 class="text-xl font-semibold">Tasks</h1>
   </div>
 
   <!-- Main content -->
   <div class="flex-1 overflow-y-auto">
-    <div class="max-w-2xl mx-auto py-8 px-6">
-  {#if loading}
-    <div class="flex justify-center py-8">
-      <Spinner class="size-6" />
-    </div>
-  {:else}
-    <TaskList 
-      title="Undated" 
-      tasks={undatedTasks} 
-      onAddTask={handleAddTask}
-      newTaskId={newTaskId}
-      editingTaskId={editingTaskId}
-      onSave={handleSaveTask}
-      onStartEdit={handleStartEdit}
-      onCancel={handleCancelEdit}
-    />
-
-    {#each datedGroups as group}
-      <TaskList 
-        title={group.formattedDate} 
-        tasks={group.tasks}
-        date={group.date}
-        onAddTask={handleAddTask}
-        newTaskId={newTaskId}
-        editingTaskId={editingTaskId}
-        onSave={handleSaveTask}
-        onStartEdit={handleStartEdit}
-        onCancel={handleCancelEdit}
-      />
-    {/each}
-
-      <!-- Infinite scroll sentinel -->
-      <div 
-        bind:this={sentinelEl}
-        class="flex justify-center py-4 min-h-[60px]"
-      >
-        {#if isLoadingMore}
+    <div class="max-w-2xl mx-auto py-6 px-6">
+      {#if loading}
+        <div class="flex justify-center py-8">
           <Spinner class="size-6" />
-        {:else if !hasMoreDays && datedGroups.length > 0}
-          <p class="text-xs text-muted-foreground/50">All caught up!</p>
-        {/if}
-      </div>
-    {/if}
+        </div>
+      {:else}
+        <TaskList
+          title="Undated"
+          tasks={undatedTasks}
+          onAddTask={handleAddTask}
+          {newTaskId}
+          {editingTaskId}
+          onSave={handleSaveTask}
+          onStartEdit={handleStartEdit}
+          onCancel={handleCancelEdit}
+        />
+
+        {#each datedGroups as group}
+          <TaskList
+            title={group.formattedDate}
+            tasks={group.tasks}
+            date={group.date}
+            onAddTask={handleAddTask}
+            {newTaskId}
+            {editingTaskId}
+            onSave={handleSaveTask}
+            onStartEdit={handleStartEdit}
+            onCancel={handleCancelEdit}
+          />
+        {/each}
+
+        <!-- Infinite scroll sentinel -->
+        <div
+          bind:this={sentinelEl}
+          class="flex justify-center py-4 min-h-[60px]"
+        >
+          {#if isLoadingMore}
+            <Spinner class="size-6" />
+          {:else if !hasMoreDays && datedGroups.length > 0}
+            <p class="text-xs text-muted-foreground/50">All caught up!</p>
+          {/if}
+        </div>
+      {/if}
     </div>
   </div>
 </div>

@@ -167,11 +167,7 @@
     </Dialog.Header>
 
     {#if selectedTask}
-      <div
-        class="space-y-4 py-2"
-        onkeydown={handleKeyDown}
-        role="none"
-      >
+      <div class="space-y-4 py-2" onkeydown={handleKeyDown} role="none">
         <!-- Completed checkbox -->
         <div class="flex items-center gap-3">
           <Checkbox
