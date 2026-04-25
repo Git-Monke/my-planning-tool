@@ -67,6 +67,7 @@
   class={cn(
     "absolute left-0 right-0 border px-2 py-1 cursor-pointer transition-all",
     "hover:shadow-md hover:z-20 group",
+    task.completed && "opacity-50",
     colors.bg,
     colors.border,
   )}
