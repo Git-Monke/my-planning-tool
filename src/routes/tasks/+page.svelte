@@ -293,7 +293,15 @@
   }
 </script>
 
-<div class="max-w-2xl mx-auto py-8 px-6">
+<div class="h-full flex flex-col">
+  <!-- Header -->
+  <div class="flex items-center justify-between px-4 py-3 border-b">
+    <h1 class="text-xl font-semibold">Tasks</h1>
+  </div>
+
+  <!-- Main content -->
+  <div class="flex-1 overflow-y-auto">
+    <div class="max-w-2xl mx-auto py-8 px-6">
   {#if loading}
     <div class="flex justify-center py-8">
       <Spinner class="size-6" />
@@ -324,16 +332,18 @@
       />
     {/each}
 
-    <!-- Infinite scroll sentinel -->
-    <div 
-      bind:this={sentinelEl}
-      class="flex justify-center py-4 min-h-[60px]"
-    >
-      {#if isLoadingMore}
-        <Spinner class="size-6" />
-      {:else if !hasMoreDays && datedGroups.length > 0}
-        <p class="text-xs text-muted-foreground/50">All caught up!</p>
-      {/if}
+      <!-- Infinite scroll sentinel -->
+      <div 
+        bind:this={sentinelEl}
+        class="flex justify-center py-4 min-h-[60px]"
+      >
+        {#if isLoadingMore}
+          <Spinner class="size-6" />
+        {:else if !hasMoreDays && datedGroups.length > 0}
+          <p class="text-xs text-muted-foreground/50">All caught up!</p>
+        {/if}
+      </div>
+    {/if}
     </div>
-  {/if}
+  </div>
 </div>

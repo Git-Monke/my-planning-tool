@@ -56,7 +56,7 @@
   <Tooltip.Root>
     <Tooltip.Trigger
       class={cn(
-        "absolute left-0 right-0 h-2 cursor-pointer group flex items-center",
+        "absolute left-0 right-0 h-2 cursor-pointer group flex items-center transition-opacity duration-300",
         allCompleted && "opacity-50",
       )}
       style="top: {topOffset}px;"
@@ -82,15 +82,6 @@
         >
           {tasks.length}
         </span>
-      {/if}
-
-      <!-- Show checkbox if task is completed -->
-      {#if tasks[0]?.completed}
-        <div class="absolute left-0 -ml-1.5 z-20">
-          <CheckIcon
-            class="size-3 text-muted-foreground bg-background rounded-full"
-          />
-        </div>
       {/if}
     </Tooltip.Trigger>
     <Tooltip.Content side="right" class="max-w-xs">

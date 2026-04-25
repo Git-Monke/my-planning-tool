@@ -15,7 +15,7 @@
 | `routes/+layout.svelte` | Root shell: `SidebarProvider` → hover-expand sidebar → `SidebarInset` → main content + right **Agent chat** column (placeholder). Mobile: `SidebarTrigger` in header |
 | `routes/+layout.ts` | Prerender enabled, SSR disabled |
 | `routes/+page.ts` | Redirects `/` → `/tasks` |
-| `routes/tasks/+page.svelte` | **Task list with infinite scroll** — undated tasks pinned at top, dated tasks grouped by day (today → future), infinite scroll loads 30 days at a time via `IntersectionObserver`, spinner shown during load |
+| `routes/tasks/+page.svelte` | **Task list with infinite scroll** — consistent header bar (like Calendar), undated tasks pinned at top, dated tasks grouped by day (today → future), infinite scroll loads 30 days at a time via `IntersectionObserver`, spinner shown during load |
 | `routes/calendar/+page.svelte` | **Calendar view** with 1-day/3-day/month toggle (1-day implemented) and task details modal |
 | `routes/notes/+page.svelte` | Placeholder |
 | `lib/components/calendar/view-toggle.svelte` | Toggle group for switching calendar views |
