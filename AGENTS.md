@@ -16,8 +16,12 @@
 | `routes/+layout.ts` | Prerender enabled, SSR disabled |
 | `routes/+page.ts` | Redirects `/` → `/tasks` |
 | `routes/tasks/+page.svelte` | **Task list with infinite scroll** — undated tasks pinned at top, dated tasks grouped by day (today → future), infinite scroll loads 30 days at a time via `IntersectionObserver`, spinner shown during load |
-| `routes/calendar/+page.svelte` | Placeholder |
+| `routes/calendar/+page.svelte` | **Calendar view** with 1-day/3-day/month toggle (1-day implemented) and task details modal |
 | `routes/notes/+page.svelte` | Placeholder |
+| `lib/components/calendar/view-toggle.svelte` | Toggle group for switching calendar views |
+| `lib/components/calendar/day-view.svelte` | 1-day calendar view with hour grid and configurable time range |
+| `lib/components/calendar/task-marker.svelte` | Due-date task marker (thick line + circle) with hover tooltips |
+| `lib/components/calendar/task-block.svelte` | Time-blocked task (pastel block positioned by start time/duration) |
 | `lib/components/app-sidebar.svelte` | Sidebar content wrapper, contains `MainNav` |
 | `lib/components/main-nav.svelte` | **Sidebar nav**: Tasks / Calendar / Notes with Lucide icons (`list-todo`, `calendar`, `file-text`). Labels hidden when collapsed (`group-data-[state=collapsed]:hidden`) |
 | `lib/components/main-route-shortcuts.svelte` | **Keyboard shortcuts**: `E` → Tasks, `R` → Calendar, `T` → Notes (disabled when typing in inputs) |
@@ -51,9 +55,10 @@
 ## Current Features
 
 - **Tasks**: Full CRUD (create, read, update, delete) with SQLite persistence. Undated tasks always visible at top. Dated tasks grouped by day (today forward), every day shown even if empty. Infinite scroll loads 30 days at a time. Inline editing (double-click), priority levels (1=low/gray, 2=medium/amber, 3=high/red), optional time & duration. Checkbox toggles completion with visual feedback. "New Task" button in each day group creates task with that group's date (2026-04-24).
-- **Navigation**: Sidebar with hover-expand on desktop, tooltips when collapsed. Keyboard shortcuts `E`/`R``/T`.
+- **Navigation**: Sidebar with hover-expand on desktop, tooltips when collapsed. Keyboard shortcuts `E`/`R`/`T`.
 - **Right panel**: Agent chat placeholder (fixed width, scrollable).
-- **Calendar/Notes**: Empty placeholders (Routes exist, no UI yet).
+- **Calendar**: 1-day view with configurable hour grid (start/end times). Displays due-date tasks as thick lines with priority-coded colors and time-blocked tasks as pastel blocks. Integrated task detail modal for quick edits and completion toggling. Previous/Next day navigation.
+- **Notes**: Empty placeholder (Route exists, no UI yet).
 
 ## Theme & Design
 
