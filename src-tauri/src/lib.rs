@@ -1,5 +1,5 @@
-use sqlx::{FromRow, SqlitePool};
 use serde::{Deserialize, Serialize};
+use sqlx::{FromRow, SqlitePool};
 use std::fs;
 use tauri::Manager;
 use uuid::Uuid;
@@ -39,22 +39,40 @@ fn greet(name: &str) -> String {
 }
 
 #[tauri::command]
-async fn get_tasks(pool: tauri::State<'_, SqlitePool>) -> Result<Vec<TaskRow>, String> {
-    let tasks = sqlx::query_as::<_, TaskRow>(
-        "SELECT id, title, notes, priority, due_date, due_time, start_time, duration, completed, created_at, updated_at FROM tasks ORDER BY created_at DESC"
-    )
-    .fetch_all(pool.inner())
-    .await
-    .map_err(|e| e.to_string())?;
-    
+async fn get_tasks(
+    pool: tauri::State<'_, SqlitePool>,
+    from_date: Option<String>,
+) -> Result<Vec<TaskRow>, String> {
+    let tasks = if let Some(from) = from_date {
+        // Fetch tasks with due_date >= from_date, ordered by due_date
+        sqlx::query_as::<_, TaskRow>(
+            "SELECT id, title, notes, priority, due_date, due_time, start_time, duration, completed, created_at, updated_at FROM tasks WHERE due_date >= ? ORDER BY due_date ASC, due_time ASC"
+        )
+        .bind(&from)
+        .fetch_all(pool.inner())
+        .await
+        .map_err(|e| e.to_string())?
+    } else {
+        // Original query: all tasks ordered by created_at
+        sqlx::query_as::<_, TaskRow>(
+            "SELECT id, title, notes, priority, due_date, due_time, start_time, duration, completed, created_at, updated_at FROM tasks ORDER BY created_at DESC"
+        )
+        .fetch_all(pool.inner())
+        .await
+        .map_err(|e| e.to_string())?
+    };
+
     Ok(tasks)
 }
 
 #[tauri::command]
-async fn create_task(pool: tauri::State<'_, SqlitePool>, input: TaskInput) -> Result<TaskRow, String> {
+async fn create_task(
+    pool: tauri::State<'_, SqlitePool>,
+    input: TaskInput,
+) -> Result<TaskRow, String> {
     let id = Uuid::new_v4().to_string();
     let now = chrono::Utc::now().to_rfc3339();
-    
+
     sqlx::query(
         r#"
         INSERT INTO tasks (id, title, notes, priority, due_date, due_time, duration, completed, created_at, updated_at)
@@ -74,7 +92,7 @@ async fn create_task(pool: tauri::State<'_, SqlitePool>, input: TaskInput) -> Re
     .execute(pool.inner())
     .await
     .map_err(|e| e.to_string())?;
-    
+
     // Return the created task
     let task = sqlx::query_as::<_, TaskRow>(
         "SELECT id, title, notes, priority, due_date, due_time, start_time, duration, completed, created_at, updated_at FROM tasks WHERE id = ?"
@@ -83,14 +101,18 @@ async fn create_task(pool: tauri::State<'_, SqlitePool>, input: TaskInput) -> Re
     .fetch_one(pool.inner())
     .await
     .map_err(|e| e.to_string())?;
-    
+
     Ok(task)
 }
 
 #[tauri::command]
-async fn update_task(pool: tauri::State<'_, SqlitePool>, id: String, input: TaskInput) -> Result<TaskRow, String> {
+async fn update_task(
+    pool: tauri::State<'_, SqlitePool>,
+    id: String,
+    input: TaskInput,
+) -> Result<TaskRow, String> {
     let now = chrono::Utc::now().to_rfc3339();
-    
+
     sqlx::query(
         r#"
         UPDATE tasks SET title = ?, notes = ?, priority = ?, due_date = ?, due_time = ?, duration = ?, completed = ?, updated_at = ?
@@ -109,7 +131,7 @@ async fn update_task(pool: tauri::State<'_, SqlitePool>, id: String, input: Task
     .execute(pool.inner())
     .await
     .map_err(|e| e.to_string())?;
-    
+
     // Return the updated task
     let task = sqlx::query_as::<_, TaskRow>(
         "SELECT id, title, notes, priority, due_date, due_time, start_time, duration, completed, created_at, updated_at FROM tasks WHERE id = ?"
@@ -118,7 +140,7 @@ async fn update_task(pool: tauri::State<'_, SqlitePool>, id: String, input: Task
     .fetch_one(pool.inner())
     .await
     .map_err(|e| e.to_string())?;
-    
+
     Ok(task)
 }
 
@@ -129,7 +151,7 @@ async fn delete_task(pool: tauri::State<'_, SqlitePool>, id: String) -> Result<(
         .execute(pool.inner())
         .await
         .map_err(|e| e.to_string())?;
-    
+
     Ok(())
 }
 
@@ -168,7 +190,13 @@ pub fn run() {
             });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet, get_tasks, create_task, update_task, delete_task])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            get_tasks,
+            create_task,
+            update_task,
+            delete_task
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

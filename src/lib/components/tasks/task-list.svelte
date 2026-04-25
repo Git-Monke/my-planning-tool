@@ -8,6 +8,7 @@
     title, 
     tasks, 
     onAddTask,
+    date = undefined,
     newTaskId = null,
     editingTaskId = null,
     onSave,
@@ -16,7 +17,8 @@
   }: { 
     title: string; 
     tasks: Task[];
-    onAddTask: () => void;
+    onAddTask: (date?: string) => void;
+    date?: string;
     newTaskId?: string | null;
     editingTaskId?: string | null;
     onSave: (task: Task) => void;
@@ -50,7 +52,7 @@
     <Button 
       variant="ghost" 
       size="xs" 
-      onclick={onAddTask}
+      onclick={() => onAddTask(date)}
       class="h-5 text-xs text-muted-foreground/60 hover:text-foreground"
     >
       <Plus class="size-3 mr-1" />
