@@ -65,7 +65,7 @@
   let expandedNotes = $state(new Set<string>());
 
   // Fetch notes on mount
-  onMount(async () => {
+  async function loadNotes() {
     try {
       notes = await invoke<Note[]>("get_notes");
     } catch (error) {
@@ -73,6 +73,12 @@
     } finally {
       loading = false;
     }
+  }
+
+  onMount(() => {
+    loadNotes();
+    window.addEventListener("app-refresh-data", loadNotes);
+    return () => window.removeEventListener("app-refresh-data", loadNotes);
   });
 
   function toggleExpanded(id: string) {

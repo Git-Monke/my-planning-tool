@@ -31,14 +31,14 @@
     return /^(1[0-2]|[1-9]):[0-5][0-9](\s*(AM|PM|am|pm))?$|^([01]?[0-9]|2[0-3]):[0-5][0-9]$/i.test(time);
   }
 
-  let timeValid = $derived(isValidTime(editDueTime));
-
   // Local editing state
   let editTitle = $state(task.title);
   let editNotes = $state(task.notes || "");
   let editPriority = $state(task.priority || null);
   let editDueTime = $state(task.due_time || "");
   let editDuration = $state(task.duration || null);
+
+  let timeValid = $derived(isValidTime(editDueTime));
 
   let titleInputEl: HTMLInputElement | null = $state(null);
 
@@ -115,7 +115,7 @@
         <!-- Title -->
         <Input
           bind:value={editTitle}
-          bind:element={titleInputEl}
+          bind:ref={titleInputEl}
           placeholder="Task title..."
           class="h-auto py-0 px-1 text-[15px] font-medium border-0 bg-transparent focus:bg-background focus:ring-1 rounded"
         />

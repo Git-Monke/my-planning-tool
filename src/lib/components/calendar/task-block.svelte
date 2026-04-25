@@ -23,7 +23,7 @@
   }
 
   // Calculate end time in minutes
-  const startMinutes = $derived(parseTimeToMinutes(task.start_time));
+  const startMinutes = $derived(parseTimeToMinutes(task.due_time || "12:00"));
   const endMinutes = $derived(startMinutes + (task.duration || 30));
 
   // Group tasks by priority for color coding (pastel colors for time blocks)
@@ -109,6 +109,6 @@
 
   <!-- Time label at bottom -->
   <div class="absolute bottom-0.5 left-2 text-[10px] opacity-60 font-medium">
-    {task.start_time}
+    {task.due_time || ""}
   </div>
 </div>

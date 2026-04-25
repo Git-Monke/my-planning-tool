@@ -48,7 +48,7 @@ pub struct TimeBlockRow {
     pub updated_at: String,
 }
 
-// Input for creating/updating tasks
+// Input for creating tasks (title required)
 #[derive(Debug, Clone, Deserialize)]
 pub struct TaskInput {
     pub title: String,
@@ -58,6 +58,27 @@ pub struct TaskInput {
     pub due_time: Option<String>,
     pub duration: Option<i32>,
     pub completed: Option<bool>,
+}
+
+// Input for updating tasks (all fields optional)
+#[derive(Debug, Clone, Deserialize)]
+pub struct TaskUpdateInput {
+    pub title: Option<String>,
+    pub notes: Option<String>,
+    pub priority: Option<i32>,
+    pub due_date: Option<String>,
+    pub due_time: Option<String>,
+    pub duration: Option<i32>,
+    pub completed: Option<bool>,
+}
+
+// Input for creating/updating time blocks
+#[derive(Debug, Clone, Deserialize)]
+pub struct TimeBlockInput {
+    pub task_id: String,
+    pub start_date: String,
+    pub start_time: String,
+    pub duration: i32,
 }
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -228,13 +249,13 @@ async fn create_task(
 async fn update_task(
     pool: tauri::State<'_, SqlitePool>,
     id: String,
-    input: TaskInput,
+    input: TaskUpdateInput,
 ) -> Result<TaskRow, String> {
     let now = chrono::Utc::now().to_rfc3339();
 
     sqlx::query(
         r#"
-        UPDATE tasks SET title = ?, notes = ?, priority = ?, due_date = ?, due_time = ?, duration = ?, completed = ?, updated_at = ?
+        UPDATE tasks SET title = COALESCE(?, title), notes = COALESCE(?, notes), priority = COALESCE(?, priority), due_date = COALESCE(?, due_date), due_time = COALESCE(?, due_time), duration = COALESCE(?, duration), completed = COALESCE(?, completed), updated_at = ?
         WHERE id = ?
         "#
     )
@@ -244,7 +265,7 @@ async fn update_task(
     .bind(&input.due_date)
     .bind(&input.due_time)
     .bind(input.duration)
-    .bind(input.completed.unwrap_or(false))
+    .bind(input.completed)
     .bind(&now)
     .bind(&id)
     .execute(pool.inner())
@@ -299,6 +320,88 @@ async fn get_time_blocks(
     Ok(time_blocks)
 }
 
+#[tauri::command]
+async fn create_time_block(
+    pool: tauri::State<'_, SqlitePool>,
+    input: TimeBlockInput,
+) -> Result<TimeBlockRow, String> {
+    let id = Uuid::new_v4().to_string();
+    let now = chrono::Utc::now().to_rfc3339();
+
+    sqlx::query(
+        r#"
+        INSERT INTO time_blocks (id, task_id, start_date, start_time, duration, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        "#
+    )
+    .bind(&id)
+    .bind(&input.task_id)
+    .bind(&input.start_date)
+    .bind(&input.start_time)
+    .bind(input.duration)
+    .bind(&now)
+    .bind(&now)
+    .execute(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let tb = sqlx::query_as::<_, TimeBlockRow>(
+        "SELECT id, task_id, start_date, start_time, duration, created_at, updated_at FROM time_blocks WHERE id = ?"
+    )
+    .bind(&id)
+    .fetch_one(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(tb)
+}
+
+#[tauri::command]
+async fn update_time_block(
+    pool: tauri::State<'_, SqlitePool>,
+    id: String,
+    input: TimeBlockInput,
+) -> Result<TimeBlockRow, String> {
+    let now = chrono::Utc::now().to_rfc3339();
+
+    sqlx::query(
+        r#"
+        UPDATE time_blocks SET task_id = ?, start_date = ?, start_time = ?, duration = ?, updated_at = ?
+        WHERE id = ?
+        "#
+    )
+    .bind(&input.task_id)
+    .bind(&input.start_date)
+    .bind(&input.start_time)
+    .bind(input.duration)
+    .bind(&now)
+    .bind(&id)
+    .execute(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let tb = sqlx::query_as::<_, TimeBlockRow>(
+        "SELECT id, task_id, start_date, start_time, duration, created_at, updated_at FROM time_blocks WHERE id = ?"
+    )
+    .bind(&id)
+    .fetch_one(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(tb)
+}
+
+#[tauri::command]
+async fn delete_time_block(pool: tauri::State<'_, SqlitePool>, id: String) -> Result<(), String> {
+    sqlx::query("DELETE FROM time_blocks WHERE id = ?")
+        .bind(&id)
+        .execute(pool.inner())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
 async fn setup_db(app_handle: &tauri::AppHandle) -> Result<SqlitePool, Box<dyn std::error::Error>> {
     let app_dir = app_handle.path().app_data_dir()?;
     if !app_dir.exists() {
@@ -344,7 +447,10 @@ pub fn run() {
             create_task,
             update_task,
             delete_task,
-            get_time_blocks
+            get_time_blocks,
+            create_time_block,
+            update_time_block,
+            delete_time_block
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -4,6 +4,7 @@
   import AppSidebar from "$lib/components/app-sidebar.svelte";
   import MainRouteShortcuts from "$lib/components/main-route-shortcuts.svelte";
   import SidebarDesktopHover from "$lib/components/sidebar-desktop-hover.svelte";
+  import AgentChat from "$lib/components/agent-chat.svelte";
   import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
   import { Separator } from "$lib/components/ui/separator/index.js";
   import * as Sidebar from "$lib/components/ui/sidebar/index.js";
@@ -36,16 +37,9 @@
       </div>
       <Separator orientation="vertical" class="h-auto" />
       <div
-        class="bg-muted/15 flex w-64 min-w-0 shrink-0 flex-col border-l md:w-72"
+        class="bg-muted/15 flex h-full w-64 min-w-0 shrink-0 flex-col border-l md:w-72"
       >
-        <div class="border-b px-3 py-2">
-          <h2 class="text-sm font-medium">Agent chat</h2>
-        </div>
-        <ScrollArea class="min-h-0 w-full flex-1">
-          <div class="text-muted-foreground p-3 text-sm">
-            Placeholder — conversation will go here.
-          </div>
-        </ScrollArea>
+        <AgentChat />
       </div>
     </div>
   </Sidebar.SidebarInset>

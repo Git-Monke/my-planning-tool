@@ -38,6 +38,13 @@
     fetchTimeBlocks(date);
   });
 
+  import { onMount } from "svelte";
+  onMount(() => {
+    const handleRefresh = () => fetchTimeBlocks(date);
+    window.addEventListener("app-refresh-data", handleRefresh);
+    return () => window.removeEventListener("app-refresh-data", handleRefresh);
+  });
+
   async function fetchTimeBlocks(dateStr: string) {
     loadingBlocks = true;
     try {

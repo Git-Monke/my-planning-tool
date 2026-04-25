@@ -46,7 +46,7 @@
     return `${y}-${m}-${day}`;
   }
 
-  onMount(async () => {
+  async function loadTasks() {
     try {
       // Load all tasks (no date filter for calendar view)
       const tasks = await invoke<Task[]>("get_tasks", { fromDate: null });
@@ -58,6 +58,12 @@
     } finally {
       loading = false;
     }
+  }
+
+  onMount(() => {
+    loadTasks();
+    window.addEventListener("app-refresh-data", loadTasks);
+    return () => window.removeEventListener("app-refresh-data", loadTasks);
   });
 
   function handleDateChange(newDate: string) {
@@ -274,7 +280,7 @@
         <Button variant="outline" onclick={() => (isModalOpen = false)}>
           Close
         </Button>
-        <Button onclick={handleSaveTask}>Save changes</Button>
+        <Button onclick={() => handleSaveTask(true)}>Save changes</Button>
       </Dialog.Footer>
     {/if}
   </Dialog.Content>

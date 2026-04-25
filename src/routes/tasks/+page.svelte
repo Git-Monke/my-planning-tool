@@ -42,8 +42,7 @@
   const initialFromDate = getTodayString();
   const initialToDate = getDateString(DAYS_PER_LOAD);
 
-  // Load initial undated tasks and dated tasks for first 30 days
-  onMount(async () => {
+  async function loadTasks() {
     try {
       // Load undated tasks (no from_date filter)
       const allTasks = await invoke<Task[]>("get_tasks", { fromDate: null });
@@ -61,6 +60,13 @@
     } finally {
       loading = false;
     }
+  }
+
+  // Load initial undated tasks and dated tasks for first 30 days
+  onMount(() => {
+    loadTasks();
+    window.addEventListener("app-refresh-data", loadTasks);
+    return () => window.removeEventListener("app-refresh-data", loadTasks);
   });
 
   // Set up intersection observer for infinite scroll
@@ -79,7 +85,9 @@
 
     observer.observe(sentinelEl);
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+    };
   });
 
   // Load more days when sentinel is visible
