@@ -9,11 +9,60 @@ export interface Message {
   tool_calls?: any[];
   tool_call_id?: string;
   name?: string;
-  audio?: any;
-  function_call?: any;
 }
 
-const TOOLS = [
+interface ToolDefinition {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: "object";
+      properties: Record<string, any>;
+      required?: string[];
+    };
+  };
+}
+
+const TOOLS: ToolDefinition[] = [
+  {
+    type: "function",
+    function: {
+      name: "get_tasks",
+      description: "Get all tasks (optional: filter by date).",
+      parameters: {
+        type: "object",
+        properties: {
+          from_date: { type: "string", description: "YYYY-MM-DD optional date filter" }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_notes",
+      description: "Get all notes.",
+      parameters: {
+        type: "object",
+        properties: {}
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_time_blocks_for_date",
+      description: "Get time blocks for a specific date.",
+      parameters: {
+        type: "object",
+        properties: {
+          date: { type: "string", description: "YYYY-MM-DD" }
+        },
+        required: ["date"]
+      }
+    }
+  },
   {
     type: "function",
     function: {
@@ -23,11 +72,11 @@ const TOOLS = [
         type: "object",
         properties: {
           title: { type: "string" },
-          notes: { type: "string", nullable: true },
-          priority: { type: "integer", enum: [1, 2, 3], description: "1=low, 2=medium, 3=high", nullable: true },
-          due_date: { type: "string", description: "YYYY-MM-DD" },
-          due_time: { type: "string", description: "HH:MM", nullable: true },
-          duration: { type: "integer", description: "Duration in minutes", nullable: true }
+          notes: { type: "string" },
+          priority: { type: "integer", enum: [1, 2, 3] },
+          due_date: { type: "string" },
+          due_time: { type: "string" },
+          duration: { type: "integer" }
         },
         required: ["title"]
       }
@@ -42,13 +91,13 @@ const TOOLS = [
         type: "object",
         properties: {
           id: { type: "string" },
-          title: { type: "string", nullable: true },
-          notes: { type: "string", nullable: true },
-          priority: { type: "integer", enum: [1, 2, 3], nullable: true },
-          due_date: { type: "string", description: "YYYY-MM-DD", nullable: true },
-          due_time: { type: "string", description: "HH:MM", nullable: true },
-          duration: { type: "integer", nullable: true },
-          completed: { type: "boolean", nullable: true }
+          title: { type: "string" },
+          notes: { type: "string" },
+          priority: { type: "integer", enum: [1, 2, 3] },
+          due_date: { type: "string" },
+          due_time: { type: "string" },
+          duration: { type: "integer" },
+          completed: { type: "boolean" }
         },
         required: ["id"]
       }
@@ -61,9 +110,7 @@ const TOOLS = [
       description: "Mark a task as complete.",
       parameters: {
         type: "object",
-        properties: {
-          id: { type: "string" }
-        },
+        properties: { id: { type: "string" } },
         required: ["id"]
       }
     }
@@ -75,9 +122,7 @@ const TOOLS = [
       description: "Delete a task by ID.",
       parameters: {
         type: "object",
-        properties: {
-          id: { type: "string" }
-        },
+        properties: { id: { type: "string" } },
         required: ["id"]
       }
     }
@@ -91,7 +136,7 @@ const TOOLS = [
         type: "object",
         properties: {
           title: { type: "string" },
-          description: { type: "string", nullable: true }
+          description: { type: "string" }
         },
         required: ["title"]
       }
@@ -106,8 +151,8 @@ const TOOLS = [
         type: "object",
         properties: {
           id: { type: "string" },
-          title: { type: "string", nullable: true },
-          description: { type: "string", nullable: true }
+          title: { type: "string" },
+          description: { type: "string" }
         },
         required: ["id"]
       }
@@ -120,9 +165,7 @@ const TOOLS = [
       description: "Delete a note by ID.",
       parameters: {
         type: "object",
-        properties: {
-          id: { type: "string" }
-        },
+        properties: { id: { type: "string" } },
         required: ["id"]
       }
     }
@@ -131,16 +174,19 @@ const TOOLS = [
     type: "function",
     function: {
       name: "create_time_block",
-      description: "Schedule a task by creating a time block on the calendar.",
+      description: "Schedule a time block on the calendar.",
       parameters: {
         type: "object",
         properties: {
-          task_id: { type: "string" },
-          start_date: { type: "string", description: "YYYY-MM-DD" },
-          start_time: { type: "string", description: "HH:MM:SS" },
-          duration: { type: "integer", description: "Duration in minutes" }
+          title: { type: "string" },
+          notes: { type: "string" },
+          priority: { type: "integer", enum: [1, 2, 3] },
+          start_date: { type: "string" },
+          start_time: { type: "string" },
+          duration: { type: "integer" },
+          completed: { type: "boolean" }
         },
-        required: ["task_id", "start_date", "start_time", "duration"]
+        required: ["title", "start_date", "start_time", "duration"]
       }
     }
   },
@@ -148,15 +194,18 @@ const TOOLS = [
     type: "function",
     function: {
       name: "update_time_block",
-      description: "Update a scheduled time block.",
+      description: "Update a time block on the calendar.",
       parameters: {
         type: "object",
         properties: {
           id: { type: "string" },
-          task_id: { type: "string", nullable: true },
-          start_date: { type: "string", description: "YYYY-MM-DD", nullable: true },
-          start_time: { type: "string", description: "HH:MM:SS", nullable: true },
-          duration: { type: "integer", nullable: true }
+          title: { type: "string" },
+          notes: { type: "string" },
+          priority: { type: "integer", enum: [1, 2, 3] },
+          start_date: { type: "string" },
+          start_time: { type: "string" },
+          duration: { type: "integer" },
+          completed: { type: "boolean" }
         },
         required: ["id"]
       }
@@ -169,9 +218,7 @@ const TOOLS = [
       description: "Delete a scheduled time block.",
       parameters: {
         type: "object",
-        properties: {
-          id: { type: "string" }
-        },
+        properties: { id: { type: "string" } },
         required: ["id"]
       }
     }
@@ -184,7 +231,6 @@ export class ChatState {
   apiKey = $state<string>("");
 
   constructor() {
-    // Try to load API key from local storage on init
     if (typeof window !== "undefined") {
       this.apiKey = localStorage.getItem("groq_api_key") || "";
     }
@@ -201,194 +247,187 @@ export class ChatState {
     this.messages = [];
   }
 
-  async buildContextSystemPrompt(): Promise<Message> {
-    const tasks = await invoke<Task[]>("get_tasks", { fromDate: null });
-    const notes = await invoke<Note[]>("get_notes");
-    const timeBlocks = await invoke<TimeBlock[]>("get_time_blocks", { date: null });
-    const today = new Date().toISOString().split("T")[0];
-
-    const contextStr = `
-You are a helpful AI assistant in a local-first productivity app. Act like a smart friend, who just wants to be brief and get shit done. You manage tasks, notes, and calendar time blocks.
-Today's date is: ${today}.
-
-AVAILABLE TOOLS:
-- create_task: Create a new task (requires title, optional notes/priority/due_date/due_time/duration)
-- complete_task: Mark a task as complete (requires id)
-- update_task: Update a task's properties (requires id)
-- delete_task: Delete a task (requires id)
-- create_note: Create a note (requires title, optional description)
-- update_note: Update a note (requires id)
-- delete_note: Delete a note (requires id)
-- create_time_block: Schedule a task on the calendar (requires task_id/start_date/start_time/duration)
-- update_time_block: Update a time block (requires id)
-- delete_time_block: Delete a time block (requires id)
-
-Current Tasks:
-${JSON.stringify(tasks, null, 2)}
-
-Current Time Blocks:
-${JSON.stringify(timeBlocks, null, 2)}
-
-Current Notes:
-${JSON.stringify(notes.map(n => ({ id: n.id, title: n.title, description: n.description?.substring(0, 500) + (n.description && n.description.length > 500 ? '...' : '') })), null, 2)}
-
-IMPORTANT: Answer questions about tasks, notes, or time blocks DIRECTLY using the data provided above. NEVER call tools to answer questions - tools are ONLY for creating, updating, or deleting data when the user explicitly asks you to do something.
-
-IMPORTANT: Make sure all the data you give to the user is formatted! It should be human readible and easy to understand. Do not show the user Task ID's! That info is not useful to the user. 
-`;
-    return { role: "system", content: contextStr };
+  private addMessage(role: Role, content: string, extra?: Partial<Message>): void {
+    this.messages = [...this.messages, { role, content, ...extra }];
   }
 
-  async executeToolCall(call: any): Promise<any> {
-    const args = JSON.parse(call.function.arguments);
-    const toolName = call.function.name;
+  private addToolResult(callId: string, name: string, content: string): void {
+    this.messages = [
+      ...this.messages,
+      { role: "tool", tool_call_id: callId, name, content }
+    ];
+  }
 
-    let result;
+  private async buildContextSystemPrompt(): Promise<Message> {
+    const today = new Date().toISOString().split("T")[0];
+
+    return {
+      role: "system",
+      content: `You are a helpful AI assistant in a local-first productivity app. Be brief and get shit done. You manage tasks, notes, and calendar time blocks.
+Today's date is: ${today}.
+
+TOOLS:
+- get_tasks: Get all tasks, optionally filtered by date (from_date: YYYY-MM-DD)
+- get_notes: Get all notes
+- get_time_blocks_for_date: Get time blocks for a specific date (date: YYYY-MM-DD required)
+- create_task: Create task (title required, optional notes/priority/due_date/due_time/duration)
+- complete_task: Mark task complete (id required)
+- update_task: Update task (id required)
+- delete_task: Delete task (id required)
+- create_note: Create note (title required, optional description)
+- update_note: Update note (id required)
+- delete_note: Delete note (id required)
+- create_time_block: Schedule calendar block (title/start_date/start_time/duration required)
+- update_time_block: Update time block (id required)
+- delete_time_block: Delete time block (id required)
+
+RULES:
+- NEVER pass null for optional parameters - omit them entirely
+- NEVER include fields with null values in tool calls
+- NEVER show users IDs - just format data nicely
+- Call get_tasks, get_notes, or get_time_blocks_for_date first to see current data before making changes
+- After creating/updating/deleting time blocks, show the day's schedule using get_time_blocks_for_date
+- Priorty 1 is the LOWEST priority, priority 3 is the HIGHEST
+- DO NOT RETURN DATA AS A TABLE, The user cannot read tables. 
+
+Answer questions directly from the data you fetch.`
+    };
+  }
+
+  private async executeToolCall(call: any): Promise<any> {
     try {
-      if (toolName === "create_task" || toolName === "update_task") {
-        const payload = { input: { ...args } };
-        // if updating, extract id
-        if (toolName === "update_task") {
-          const id = args.id;
-          delete args.id;
-          result = await invoke("update_task", { id, input: args });
-        } else {
-          result = await invoke("create_task", payload);
-        }
-      } else if (toolName === "complete_task") {
-        result = await invoke("update_task", { id: args.id, input: { completed: true } });
-        result = { success: true };
-      } else if (toolName === "delete_task") {
-        result = await invoke("delete_task", { id: args.id });
-        result = { success: true };
-      } else if (toolName === "create_note" || toolName === "update_note") {
-        const payload = { input: { ...args } };
-        if (toolName === "update_note") {
-          const id = args.id;
-          delete args.id;
-          result = await invoke("update_note", { id, input: args });
-        } else {
-          result = await invoke("create_note", payload);
-        }
-      } else if (toolName === "delete_note") {
-        result = await invoke("delete_note", { id: args.id });
-        result = { success: true };
-      } else if (toolName === "create_time_block" || toolName === "update_time_block") {
-        const payload = { input: { ...args } };
-        if (toolName === "update_time_block") {
-          const id = args.id;
-          delete args.id;
-          result = await invoke("update_time_block", { id, input: args });
-        } else {
-          result = await invoke("create_time_block", payload);
-        }
-      } else if (toolName === "delete_time_block") {
-        result = await invoke("delete_time_block", { id: args.id });
-        result = { success: true };
-      } else {
-        result = { error: "Unknown tool" };
-      }
+      const rawArgs = JSON.parse(call.function.arguments) as Record<string, unknown>;
+      const args = Object.fromEntries(
+        Object.entries(rawArgs).filter(([, v]) => v !== null)
+      ) as Record<string, string | number | boolean>;
+      const toolName = call.function.name;
 
-      // Dispatch event so UI refreshes
+      switch (toolName) {
+        case "get_tasks":
+          return await invoke("get_tasks", { fromDate: args.from_date as string || null });
+
+        case "get_notes":
+          return await invoke<Note[]>("get_notes");
+
+        case "get_time_blocks_for_date":
+          return await invoke<TimeBlock[]>("get_time_blocks", { date: args.date as string });
+
+        case "create_task":
+          return await invoke("create_task", { input: args });
+
+        case "update_task":
+          return await invoke("update_task", { id: args.id, input: args });
+
+        case "complete_task":
+        case "delete_task":
+          return await invoke(toolName === "complete_task" ? "update_task" : "delete_task", {
+            id: args.id,
+            ...(toolName === "complete_task" ? { input: { completed: true } } : {})
+          });
+
+        case "create_note":
+        case "update_note":
+          return await invoke(toolName, {
+            id: toolName === "update_note" ? args.id : undefined,
+            input: args
+          });
+
+        case "delete_note":
+          return await invoke("delete_note", { id: args.id });
+
+        case "create_time_block":
+          return await invoke("create_time_block", { input: args });
+
+        case "update_time_block":
+          return await invoke("update_time_block", { id: args.id, input: args });
+
+        case "delete_time_block":
+          return await invoke("delete_time_block", { id: args.id });
+
+        default:
+          return { error: `Unknown tool: ${toolName}` };
+      }
+    } catch (err) {
+      return { error: String(err) };
+    } finally {
+      // Refresh UI after any tool mutation
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("app-refresh-data"));
       }
-
-      return result;
-    } catch (err: any) {
-      return { error: err.toString() };
     }
+  }
+
+  private async sendApiRequest(messages: Message[]): Promise<Response> {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-oss-120b",
+        messages,
+        tools: TOOLS,
+        tool_choice: "auto"
+      })
+    });
+
+    if (!response.ok) {
+      const errJson = JSON.parse(await response.text()).error;
+      const msg = errJson?.message || "";
+      const match = msg.match(/parameters for tool \w+ did not match schema:[^]*$/);
+      throw new Error(match ? `Tool parameter error: ${match[0]}` : `API error: ${msg.slice(0, 200)}`);
+    }
+
+    return response;
   }
 
   async sendMessage(content: string) {
     if (!this.apiKey) {
-      this.messages = [...this.messages, { role: "assistant", content: "Please set your Groq API Key first." }];
+      this.addMessage("assistant", "Please set your Groq API Key first.");
       return;
     }
 
-    // Add user message
-    this.messages = [...this.messages, { role: "user", content }];
-
+    this.addMessage("user", content);
     await this.runChatLoop();
   }
 
   private async runChatLoop() {
     this.isLoading = true;
+    let toolRetryCount = 0;
+    const maxToolRetries = 3;
+
     try {
-      let loopRunning = true;
-      while (loopRunning) {
-        // Build the current list of messages to send
-        // Prefix with a fresh context system prompt
-        const systemPrompt = await this.buildContextSystemPrompt();
-        const messagesToSend = [systemPrompt, ...this.messages];
-
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${this.apiKey}`
-          },
-          body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            messages: messagesToSend,
-            tools: TOOLS,
-            tool_choice: "auto"
-          })
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          this.messages = [...this.messages, { role: "assistant", content: `Error: ${response.status} ${errorText}` }];
+      while (true) {
+        if (toolRetryCount >= maxToolRetries) {
+          this.addMessage("assistant", "Sorry, I encountered too many tool errors. Please try again.");
           break;
         }
 
+        // Build context with fresh data
+        const systemPrompt = await this.buildContextSystemPrompt();
+        const messagesToSend = [systemPrompt, ...this.messages];
+
+        const response = await this.sendApiRequest(messagesToSend);
         const data = await response.json();
         const responseMessage = data.choices[0].message;
 
-        // Append assistant's response to history
-        this.messages = [...this.messages, responseMessage];
+        // Add assistant response to history
+        this.addMessage("assistant", responseMessage.content || "", {
+          tool_calls: responseMessage.tool_calls
+        });
 
-        if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
-          // Execute tools and append results
-          for (const call of responseMessage.tool_calls) {
-            const toolResult = await this.executeToolCall(call);
-            const resultContent = toolResult.error
-              ? `ERROR: ${toolResult.error}`
-              : JSON.stringify(toolResult);
-            this.messages = [
-              ...this.messages,
-              {
-                role: "tool",
-                tool_call_id: call.id,
-                name: call.function.name,
-                content: resultContent
-              }
-            ];
-          }
-          // The loop continues so Groq can process tool results
-        } else if (responseMessage.function_call) {
-          // Handle legacy function_call format
-          const call = responseMessage.function_call;
-          const toolResult = await this.executeToolCall(call);
-          const resultContent = toolResult.error
-            ? `ERROR: ${toolResult.error}`
-            : JSON.stringify(toolResult);
-          this.messages = [
-            ...this.messages,
-            {
-              role: "tool",
-              name: call.name,
-              content: resultContent
-            }
-          ];
-          loopRunning = true;
-        } else {
-          // No more tools, final response reached
-          loopRunning = false;
+        // No more tool calls - we're done
+        if (!responseMessage.tool_calls?.length) break;
+
+        // Execute all tool calls
+        for (const call of responseMessage.tool_calls) {
+          const result = await this.executeToolCall(call);
+          this.addToolResult(call.id, call.function.name, JSON.stringify(result));
         }
       }
-    } catch (e: any) {
-      this.messages = [...this.messages, { role: "assistant", content: `Exception: ${e.toString()}` }];
+    } catch (err) {
+      this.addMessage("assistant", `Exception: ${String(err)}`);
     } finally {
       this.isLoading = false;
     }

@@ -103,7 +103,7 @@
           </div>
         {/if}
 
-        {#each chatState.messages.filter((m) => m.role !== "system") as msg}
+        {#each chatState.messages.filter((m) => m.role !== "system" && !(m.role === "user" && (m.content.startsWith("Tool error:") || m.content.startsWith("The previous tool call failed")))) as msg}
           <div
             class="flex flex-col {msg.role === 'user'
               ? 'items-end'
@@ -131,11 +131,13 @@
                 {/if}
               </div>
             {:else if msg.role === "tool"}
-              <div
-                class="text-xs text-muted-foreground flex items-center gap-1 pl-2"
-              >
-                ✓ {msg.name} completed
-              </div>
+              {#if !msg.content.startsWith('Tool error:')}
+                <div
+                  class="text-xs text-muted-foreground flex items-center gap-1 pl-2"
+                >
+                  ✓ {msg.name} completed
+                </div>
+              {/if}
             {/if}
           </div>
         {/each}

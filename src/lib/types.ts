@@ -21,10 +21,13 @@ export interface Task {
 
 export interface TimeBlock {
 	id: string;
-	task_id: string;
+	title: string;
+	notes: string | null;
+	priority: number | null;
 	start_date: string; // YYYY-MM-DD
 	start_time: string; // HH:MM:SS
 	duration: number; // minutes
+	completed: boolean;
 	created_at: string;
 	updated_at: string;
 }

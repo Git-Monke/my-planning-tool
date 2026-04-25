@@ -48,7 +48,11 @@
   async function fetchTimeBlocks(dateStr: string) {
     loadingBlocks = true;
     try {
-      const blocks = await invoke<TimeBlock[]>("get_time_blocks", { date: dateStr });
+      console.log("[DayView] Fetching time blocks for date:", dateStr);
+      const blocks = await invoke<TimeBlock[]>("get_time_blocks", {
+        date: dateStr,
+      });
+      console.log("[DayView] Got time blocks:", blocks);
       timeBlocks = blocks;
     } catch (error) {
       console.error("Failed to fetch time blocks:", error);
@@ -93,9 +97,7 @@
   );
 
   // Due-only tasks (no time blocks anymore - those are separate)
-  const dueOnlyTasks = $derived(
-    tasksForDate.filter((t) => !t.due_date),
-  );
+  const dueOnlyTasks = $derived(tasksForDate.filter((t) => !t.due_date));
 
   // Group due-only tasks by due_time for markers
   const dueTasksByTime = $derived.by(() => {
@@ -284,33 +286,33 @@
         {/if}
       {/if}
 
-      <!-- Time blocks from the new time_blocks table -->
+      <!-- Time blocks (standalone entities) -->
       {#if loadingBlocks}
         <div class="absolute top-4 left-1/2 -translate-x-1/2">
           <Spinner class="size-4" />
         </div>
+      {:else if timeBlocks.length === 0}
+        <div
+          class="absolute top-4 left-1/2 -translate-x-1/2 text-xs text-muted-foreground"
+        >
+          No time blocks
+        </div>
       {:else}
         {#each timeBlocks as block}
+          {@const task = {
+            id: block.id,
+            title: block.title,
+            notes: block.notes || undefined,
+            priority: block.priority || undefined,
+            due_time: block.start_time.slice(0, 5), // HH:MM from HH:MM:SS
+            duration: block.duration,
+            completed: block.completed,
+            created_at: block.created_at,
+            updated_at: block.updated_at,
+          }}
           {@const top = getTopOffset(block.start_time)}
           {@const height = (block.duration / 60) * hourHeight}
-          <div
-            class="absolute left-0 right-0 border px-2 py-1 cursor-pointer transition-all hover:shadow-md hover:z-20 group"
-            style="top: {top}px; height: {height}px;"
-          >
-            <div class="flex items-start justify-between h-full gap-2 overflow-hidden">
-              <div class="flex-1 min-w-0">
-                <h4 class="text-sm font-medium leading-tight truncate text-slate-700 dark:text-slate-300">
-                  Block {block.id.slice(0, 8)}
-                </h4>
-                <p class="text-xs text-muted-foreground mt-0.5">
-                  {block.duration} min
-                </p>
-              </div>
-            </div>
-            <div class="absolute bottom-0.5 left-2 text-[10px] opacity-60 font-medium text-muted-foreground">
-              {block.start_time}
-            </div>
-          </div>
+          <TaskBlock {task} topOffset={top} {height} {onTaskClick} />
         {/each}
       {/if}
 

@@ -36,14 +36,17 @@ pub struct TaskRow {
     pub updated_at: String,
 }
 
-// TimeBlock row structure for database queries
+// TimeBlock row structure for database queries (standalone)
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct TimeBlockRow {
     pub id: String,
-    pub task_id: String,
+    pub title: String,
+    pub notes: Option<String>,
+    pub priority: Option<i32>,
     pub start_date: String,
     pub start_time: String,
     pub duration: i32,
+    pub completed: bool,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -72,13 +75,16 @@ pub struct TaskUpdateInput {
     pub completed: Option<bool>,
 }
 
-// Input for creating/updating time blocks
+// Input for creating/updating time blocks (standalone)
 #[derive(Debug, Clone, Deserialize)]
 pub struct TimeBlockInput {
-    pub task_id: String,
+    pub title: String,
+    pub notes: Option<String>,
+    pub priority: Option<i32>,
     pub start_date: String,
     pub start_time: String,
     pub duration: i32,
+    pub completed: Option<bool>,
 }
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -303,7 +309,7 @@ async fn get_time_blocks(
 ) -> Result<Vec<TimeBlockRow>, String> {
     let time_blocks = if let Some(from) = date {
         sqlx::query_as::<_, TimeBlockRow>(
-            "SELECT id, task_id, start_date, start_time, duration, created_at, updated_at FROM time_blocks WHERE start_date = ? ORDER BY start_time ASC"
+            "SELECT id, title, notes, priority, start_date, start_time, duration, completed, created_at, updated_at FROM time_blocks WHERE start_date = ? ORDER BY start_time ASC"
         )
         .bind(&from)
         .fetch_all(pool.inner())
@@ -311,7 +317,7 @@ async fn get_time_blocks(
         .map_err(|e| e.to_string())?
     } else {
         sqlx::query_as::<_, TimeBlockRow>(
-            "SELECT id, task_id, start_date, start_time, duration, created_at, updated_at FROM time_blocks ORDER BY start_date ASC, start_time ASC"
+            "SELECT id, title, notes, priority, start_date, start_time, duration, completed, created_at, updated_at FROM time_blocks ORDER BY start_date ASC, start_time ASC"
         )
         .fetch_all(pool.inner())
         .await
@@ -330,15 +336,18 @@ async fn create_time_block(
 
     sqlx::query(
         r#"
-        INSERT INTO time_blocks (id, task_id, start_date, start_time, duration, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO time_blocks (id, title, notes, priority, start_date, start_time, duration, completed, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         "#
     )
     .bind(&id)
-    .bind(&input.task_id)
+    .bind(&input.title)
+    .bind(&input.notes)
+    .bind(input.priority)
     .bind(&input.start_date)
     .bind(&input.start_time)
     .bind(input.duration)
+    .bind(input.completed.unwrap_or(false))
     .bind(&now)
     .bind(&now)
     .execute(pool.inner())
@@ -346,7 +355,7 @@ async fn create_time_block(
     .map_err(|e| e.to_string())?;
 
     let tb = sqlx::query_as::<_, TimeBlockRow>(
-        "SELECT id, task_id, start_date, start_time, duration, created_at, updated_at FROM time_blocks WHERE id = ?"
+        "SELECT id, title, notes, priority, start_date, start_time, duration, completed, created_at, updated_at FROM time_blocks WHERE id = ?"
     )
     .bind(&id)
     .fetch_one(pool.inner())
@@ -366,14 +375,17 @@ async fn update_time_block(
 
     sqlx::query(
         r#"
-        UPDATE time_blocks SET task_id = ?, start_date = ?, start_time = ?, duration = ?, updated_at = ?
+        UPDATE time_blocks SET title = COALESCE(?, title), notes = COALESCE(?, notes), priority = COALESCE(?, priority), start_date = ?, start_time = ?, duration = ?, completed = COALESCE(?, completed), updated_at = ?
         WHERE id = ?
         "#
     )
-    .bind(&input.task_id)
+    .bind(&input.title)
+    .bind(&input.notes)
+    .bind(input.priority)
     .bind(&input.start_date)
     .bind(&input.start_time)
     .bind(input.duration)
+    .bind(input.completed)
     .bind(&now)
     .bind(&id)
     .execute(pool.inner())
@@ -381,7 +393,7 @@ async fn update_time_block(
     .map_err(|e| e.to_string())?;
 
     let tb = sqlx::query_as::<_, TimeBlockRow>(
-        "SELECT id, task_id, start_date, start_time, duration, created_at, updated_at FROM time_blocks WHERE id = ?"
+        "SELECT id, title, notes, priority, start_date, start_time, duration, completed, created_at, updated_at FROM time_blocks WHERE id = ?"
     )
     .bind(&id)
     .fetch_one(pool.inner())

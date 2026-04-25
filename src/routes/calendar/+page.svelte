@@ -62,8 +62,9 @@
 
   onMount(() => {
     loadTasks();
-    window.addEventListener("app-refresh-data", loadTasks);
-    return () => window.removeEventListener("app-refresh-data", loadTasks);
+    const handleRefresh = () => loadTasks();
+    window.addEventListener("app-refresh-data", handleRefresh);
+    return () => window.removeEventListener("app-refresh-data", handleRefresh);
   });
 
   function handleDateChange(newDate: string) {
