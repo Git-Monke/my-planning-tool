@@ -4,6 +4,23 @@ use std::fs;
 use tauri::Manager;
 use uuid::Uuid;
 
+// Note structure for database queries
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Note {
+    pub id: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+// Input for creating/updating notes
+#[derive(Debug, Clone, Deserialize)]
+pub struct NoteInput {
+    pub title: String,
+    pub description: Option<String>,
+}
+
 // Task row structure for database queries
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct TaskRow {
@@ -36,6 +53,99 @@ pub struct TaskInput {
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+// Note CRUD commands
+#[tauri::command]
+async fn get_notes(pool: tauri::State<'_, SqlitePool>) -> Result<Vec<Note>, String> {
+    let notes = sqlx::query_as::<_, Note>(
+        "SELECT id, title, description, created_at, updated_at FROM notes ORDER BY updated_at DESC"
+    )
+    .fetch_all(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(notes)
+}
+
+#[tauri::command]
+async fn create_note(
+    pool: tauri::State<'_, SqlitePool>,
+    input: NoteInput,
+) -> Result<Note, String> {
+    let id = Uuid::new_v4().to_string();
+    let now = chrono::Utc::now().to_rfc3339();
+
+    sqlx::query(
+        r#"
+        INSERT INTO notes (id, title, description, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        "#
+    )
+    .bind(&id)
+    .bind(&input.title)
+    .bind(&input.description)
+    .bind(&now)
+    .bind(&now)
+    .execute(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // Return the created note
+    let note = sqlx::query_as::<_, Note>(
+        "SELECT id, title, description, created_at, updated_at FROM notes WHERE id = ?"
+    )
+    .bind(&id)
+    .fetch_one(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(note)
+}
+
+#[tauri::command]
+async fn update_note(
+    pool: tauri::State<'_, SqlitePool>,
+    id: String,
+    input: NoteInput,
+) -> Result<Note, String> {
+    let now = chrono::Utc::now().to_rfc3339();
+
+    sqlx::query(
+        r#"
+        UPDATE notes SET title = ?, description = ?, updated_at = ?
+        WHERE id = ?
+        "#
+    )
+    .bind(&input.title)
+    .bind(&input.description)
+    .bind(&now)
+    .bind(&id)
+    .execute(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // Return the updated note
+    let note = sqlx::query_as::<_, Note>(
+        "SELECT id, title, description, created_at, updated_at FROM notes WHERE id = ?"
+    )
+    .bind(&id)
+    .fetch_one(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(note)
+}
+
+#[tauri::command]
+async fn delete_note(pool: tauri::State<'_, SqlitePool>, id: String) -> Result<(), String> {
+    sqlx::query("DELETE FROM notes WHERE id = ?")
+        .bind(&id)
+        .execute(pool.inner())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -192,6 +302,10 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             greet,
+            get_notes,
+            create_note,
+            update_note,
+            delete_note,
             get_tasks,
             create_task,
             update_task,

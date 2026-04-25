@@ -1,7 +1,7 @@
 export interface Note {
 	id: string;
 	title: string;
-	description: string;
+	description: string | null;
 	created_at: string;
 	updated_at: string;
 }

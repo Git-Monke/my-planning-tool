@@ -1,45 +1,63 @@
-# Calendar Page Scrolling Fix Plan
+# Notes Backend Persistence Plan
 
 ## Context
-
-The calendar page on `/calendar` exhibits unwanted whole-page scrolling. The structural view should be fixed (not scroll), with only the day view's time grid scrolling internally. This issue was introduced when the app shell was built with `overflow-auto` on the children wrapper in the layout.
-
-## Root Cause
-
-In `src/routes/+layout.svelte`, line 34, the children wrapper has:
-```svelte
-<div class="... overflow-auto p-0">
-  {@render children()}
-</div>
-```
-
-The `overflow-auto` creates a scrollable container. When the calendar content (including the day view's time grid) exceeds the available viewport height, this wrapper scrolls the entire page instead of:
-- Keeping the calendar header fixed
-- Scrolling only within the day view's time grid (which has `overflow-y-auto`)
+The notes page (`src/routes/notes/+page.svelte`) currently uses hardcoded sample data with no backend persistence. Tasks already have full CRUD operations backed by SQLite. We need to add the same persistence for notes.
 
 ## Approach
-
-Change `overflow-auto` to `overflow-hidden` on the children wrapper in the layout. This will:
-1. Prevent whole-page scrolling
-2. Allow height constraints to propagate properly to the calendar page (`h-full`)
-3. The day view's internal time grid will still scroll via its own `overflow-y-auto`
+1. **Database**: Create a `notes` table migration (mirrors the `Note` TypeScript interface)
+2. **Backend (Rust)**: Add CRUD commands for notes using the existing SQLx + SQLite pattern
+3. **Frontend (Svelte)**: 
+   - Fetch notes on mount using `invoke("get_notes")`
+   - Create notes using `invoke("create_note", { input })`
+   - Update notes using `invoke("update_note", { id, input })`
+   - Delete notes using `invoke("delete_note", { id })`
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/routes/+layout.svelte` | Change `overflow-auto` to `overflow-hidden` on the children wrapper div |
+### Backend (Rust)
+| File | Changes |
+|------|---------|
+| `src-tauri/src/lib.rs` | Add NoteRow/NoteInput structs, CRUD commands |
+| `src-tauri/migrations/` | New migration for notes table |
 
-## Implementation Steps
+### Frontend (Svelte)
+| File | Changes |
+|------|---------|
+| `src/routes/notes/+page.svelte` | Fetch on mount, persist on create/update/delete |
 
-- [ ] **Step 1:** In `src/routes/+layout.svelte`, locate the div wrapping `{@render children()}` (line 34)
-- [ ] **Step 2:** Change `class="min-h-0 min-w-0 flex-1 overflow-auto p-0"` to `class="min-h-0 min-w-0 flex-1 overflow-hidden p-0"`
+## Reuse
+- **Backend pattern**: Use existing task CRUD in `lib.rs` as template (get_tasks, create_task, update_task, delete_task)
+- **Database connection**: Reuse existing `setup_db()` which creates `SqlitePool` and runs migrations
+- **Frontend pattern**: Use `invoke()` from `@tauri-apps/api/core` as seen in `tasks/+page.svelte`
+
+## Steps
+
+### Backend
+1. [ ] Create migration: `src-tauri/migrations/<timestamp>_create_notes_table.sql`
+   - Columns: `id TEXT PRIMARY KEY`, `title TEXT NOT NULL`, `description TEXT`, `created_at TEXT NOT NULL`, `updated_at TEXT NOT NULL`
+
+2. [ ] Add to `lib.rs`:
+   - `NoteRow` struct (mirrors `TaskRow`)
+   - `NoteInput` struct (mirrors `TaskInput`)
+   - `get_notes()` command - returns all notes ordered by `updated_at DESC`
+   - `create_note()` command - inserts note, returns created row
+   - `update_note()` command - updates note, returns updated row
+   - `delete_note()` command - deletes note by id
+   - Register all commands in `invoke_handler`
+
+### Frontend
+3. [ ] Update `notes/+page.svelte`:
+   - Import `invoke` from `@tauri-apps/api/core`
+   - Replace hardcoded `notes` array with empty `$state` 
+   - Add `onMount` to fetch notes from backend
+   - Update `addNewNote()` to call `invoke("create_note")` and add returned note to state
+   - Update `updateNote()` to debounce and call `invoke("update_note")`
+   - Add `deleteNote()` function and hook it up (e.g., right-click or delete button)
 
 ## Verification
-
-1. Navigate to `/calendar` on desktop viewport
-2. Verify the calendar header (title + view toggle) stays fixed
-3. Verify the day view's time grid scrolls internally when content exceeds viewport
-4. Verify the entire page cannot be scrolled up/down
-5. Test on mobile viewport to ensure no regression with the mobile header toggle
-6. Test the agent chat panel on the right side (should still scroll independently)
+1. Run `cargo build` in `src-tauri` to verify Rust compiles
+2. Run `npm run dev` and test:
+   - Notes load on page open
+   - Creating a note persists it to the database
+   - Editing a note title/description persists
+   - Deleting a note removes it permanently
