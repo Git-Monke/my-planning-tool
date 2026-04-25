@@ -48,12 +48,17 @@
       })
       .join("\n"),
   );
+
+  const allCompleted = $derived(tasks.every((t) => t.completed));
 </script>
 
 <Tooltip.Provider>
   <Tooltip.Root>
     <Tooltip.Trigger
-      class="absolute left-0 right-0 h-2 cursor-pointer group flex items-center"
+      class={cn(
+        "absolute left-0 right-0 h-2 cursor-pointer group flex items-center",
+        allCompleted && "opacity-50",
+      )}
       style="top: {topOffset}px;"
       onclick={() => onTaskClick?.(tasks[0])}
     >
