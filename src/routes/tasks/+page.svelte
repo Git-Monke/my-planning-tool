@@ -1,141 +1,187 @@
 <script lang="ts">
-	import type { Task } from "$lib/types.js";
-	import TaskList from "$lib/components/tasks/task-list.svelte";
-	import { onMount } from "svelte";
+  import type { Task } from "$lib/types.js";
+  import TaskList from "$lib/components/tasks/task-list.svelte";
+  import { onMount } from "svelte";
+  import { invoke } from "@tauri-apps/api/core";
 
-	const now = new Date();
-	const todayISO = now.toISOString().split('T')[0];
-	const tomorrowDate = new Date(now);
-	tomorrowDate.setDate(now.getDate() + 1);
-	const tomorrowISO = tomorrowDate.toISOString().split('T')[0];
+  let tasks = $state<Task[]>([]);
+  let loading = $state(true);
+  let editingTaskId = $state<string | null>(null);
+  let newTaskId = $state<string | null>(null);
 
-	let tasks = $state<Task[]>([
-		{
-			id: "1",
-			title: "Design task list UI",
-			notes: "Implement undated section and daily groups with priority colors.",
-			priority: 3,
-			completed: false,
-			created_at: now.toISOString(),
-			updated_at: now.toISOString()
-		},
-		{
-			id: "2",
-			title: "Setup Tauri backend",
-			notes: "Configure SQLite and SQLx migrations.",
-			priority: 2,
-			completed: true,
-			created_at: now.toISOString(),
-			updated_at: now.toISOString()
-		},
-		{
-			id: "7",
-			title: "Research Groq Llama 3.3 capabilities",
-			notes: "Focus on tool calling and context window limits.",
-			priority: 2,
-			completed: false,
-			created_at: now.toISOString(),
-			updated_at: now.toISOString()
-		},
-		{
-			id: "3",
-			title: "Groq API integration",
-			priority: 3,
-			due_date: todayISO,
-			due_time: "10:00",
-			completed: false,
-			created_at: now.toISOString(),
-			updated_at: now.toISOString()
-		},
-		{
-			id: "4",
-			title: "Polish mobile view",
-			notes: "Ensure sidebar works on small screens.",
-			priority: 1,
-			due_date: todayISO,
-			duration: 45,
-			completed: false,
-			created_at: now.toISOString(),
-			updated_at: now.toISOString()
-		},
-		{
-			id: "5",
-			title: "Team meeting",
-			priority: 2,
-			due_date: tomorrowISO,
-			due_time: "14:00",
-			duration: 60,
-			completed: false,
-			created_at: now.toISOString(),
-			updated_at: now.toISOString()
-		},
-		{
-			id: "6",
-			title: "Write documentation",
-			priority: 1,
-			completed: false,
-			created_at: now.toISOString(),
-			updated_at: now.toISOString()
-		}
-	]);
+  // Load tasks from backend
+  onMount(async () => {
+    try {
+      const loadedTasks = await invoke<Task[]>("get_tasks");
+      tasks = loadedTasks;
+    } catch (error) {
+      console.error("Failed to load tasks:", error);
+    } finally {
+      loading = false;
+    }
+  });
 
-	const undatedTasks = $derived(
-		tasks
-			.filter(t => !t.due_date)
-			.sort((a, b) => (b.priority || 0) - (a.priority || 0))
-	);
+  // CRUD operations
+  async function handleAddTask() {
+    try {
+      const newTask = await invoke<Task>("create_task", {
+        input: {
+          title: "",
+          notes: null,
+          priority: null,
+          due_date: null,
+          due_time: null,
+          duration: null,
+          completed: false
+        }
+      });
+      tasks = [newTask, ...tasks];
+      editingTaskId = newTask.id;
+      newTaskId = newTask.id;
+    } catch (error) {
+      console.error("Failed to create task:", error);
+    }
+  }
 
-	const datedGroups = $derived.by(() => {
-		const groups: Record<string, Task[]> = {};
-		tasks
-			.filter(t => t.due_date)
-			.forEach(t => {
-				const date = t.due_date!;
-				if (!groups[date]) groups[date] = [];
-				groups[date].push(t);
-			});
+  async function handleUpdateTask(task: Task) {
+    try {
+      const updatedTask = await invoke<Task>("update_task", {
+        id: task.id,
+        input: {
+          title: task.title,
+          notes: task.notes || null,
+          priority: task.priority || null,
+          due_date: task.due_date || null,
+          due_time: task.due_time || null,
+          duration: task.duration || null,
+          completed: task.completed
+        }
+      });
+      tasks = tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
+      if (editingTaskId === task.id) {
+        editingTaskId = null;
+        newTaskId = null;
+      }
+    } catch (error) {
+      console.error("Failed to update task:", error);
+    }
+  }
 
-		return Object.entries(groups)
-			.sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-			.map(([date, tasks]) => ({
-				date,
-				formattedDate: formatDate(date),
-				tasks: tasks.sort((a, b) => {
-					// Sort by priority descending
-					const pDiff = (b.priority || 0) - (a.priority || 0);
-					if (pDiff !== 0) return pDiff;
-					// Then by due_time ascending
-					if (a.due_time && b.due_time) return a.due_time.localeCompare(b.due_time);
-					if (a.due_time) return -1;
-					if (b.due_time) return 1;
-					return 0;
-				})
-			}));
-	});
+  async function handleDeleteTask(id: string) {
+    try {
+      await invoke("delete_task", { id });
+      tasks = tasks.filter(t => t.id !== id);
+      if (editingTaskId === id) {
+        editingTaskId = null;
+      }
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+    }
+  }
 
-	function formatDate(dateStr: string) {
-		const date = new Date(dateStr + "T00:00:00");
-		const today = new Date();
-		today.setHours(0, 0, 0, 0);
-		
-		const tomorrow = new Date(today);
-		tomorrow.setDate(today.getDate() + 1);
+  function handleSaveTask(task: Task) {
+    if (!task.title.trim()) {
+      // Don't save empty tasks, delete the new task
+      handleDeleteTask(task.id);
+    } else {
+      handleUpdateTask(task);
+    }
+  }
 
-		if (date.getTime() === today.getTime()) return "Today";
-		if (date.getTime() === tomorrow.getTime()) return "Tomorrow";
+  function handleStartEdit(taskId: string) {
+    editingTaskId = taskId;
+  }
 
-		return date.toLocaleDateString(undefined, { 
-			weekday: 'long', 
-			month: 'short', 
-			day: 'numeric' 
-		});
-	}
+  function handleCancelEdit(taskId: string) {
+    const task = tasks.find(t => t.id === taskId);
+    if (task && !task.title.trim()) {
+      // Empty new task - delete it
+      handleDeleteTask(taskId);
+    } else {
+      editingTaskId = null;
+    }
+  }
+
+  const undatedTasks = $derived(
+    tasks
+      .filter((t) => !t.due_date)
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0)),
+  );
+
+  const datedGroups = $derived.by(() => {
+    const groups: Record<string, Task[]> = {};
+    tasks
+      .filter((t) => t.due_date)
+      .forEach((t) => {
+        const date = t.due_date!;
+        if (!groups[date]) groups[date] = [];
+        groups[date].push(t);
+      });
+
+    return Object.entries(groups)
+      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+      .map(([date, tasks]) => ({
+        date,
+        formattedDate: formatDate(date),
+        tasks: tasks.sort((a, b) => {
+          // Sort by priority descending
+          const pDiff = (b.priority || 0) - (a.priority || 0);
+          if (pDiff !== 0) return pDiff;
+          // Then by due_time ascending
+          if (a.due_time && b.due_time)
+            return a.due_time.localeCompare(b.due_time);
+          if (a.due_time) return -1;
+          if (b.due_time) return 1;
+          return 0;
+        }),
+      }));
+  });
+
+  function formatDate(dateStr: string) {
+    const date = new Date(dateStr + "T00:00:00");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    if (date.getTime() === today.getTime()) return "Today";
+    if (date.getTime() === tomorrow.getTime()) return "Tomorrow";
+
+    return date.toLocaleDateString(undefined, {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    });
+  }
 </script>
 
 <div class="max-w-2xl mx-auto py-8 px-6">
-	<TaskList title="Undated" tasks={undatedTasks} />
+  {#if loading}
+    <p class="text-muted-foreground">Loading tasks...</p>
+  {:else}
+    <TaskList 
+      title="Undated" 
+      tasks={undatedTasks} 
+      onAddTask={handleAddTask}
+      newTaskId={newTaskId}
+      editingTaskId={editingTaskId}
+      onSave={handleSaveTask}
+      onStartEdit={handleStartEdit}
+      onCancel={handleCancelEdit}
+    />
 
-	{#each datedGroups as group}
-		<TaskList title={group.formattedDate} tasks={group.tasks} />
-	{/each}
+    {#each datedGroups as group}
+      <TaskList 
+        title={group.formattedDate} 
+        tasks={group.tasks}
+        onAddTask={handleAddTask}
+        newTaskId={newTaskId}
+        editingTaskId={editingTaskId}
+        onSave={handleSaveTask}
+        onStartEdit={handleStartEdit}
+        onCancel={handleCancelEdit}
+      />
+    {/each}
+  {/if}
 </div>
