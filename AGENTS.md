@@ -63,7 +63,9 @@
 ## Recent Changes (2026-04-24)
 - Fixed calendar scrolling issue by locking layout to viewport height.
 - Fixed task completion checkbox state sync in calendar modal.
-- Added auto-close behavior to task modal after saving.
+- Added auto-close behavior to task modal after saving (and refined it to not close on checkbox toggle).
+- Added Enter keyboard shortcut to save and close the task modal.
+- Reduced whitespace in the task detail modal.
 
 ## Theme & Design
 

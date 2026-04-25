@@ -80,7 +80,7 @@
     isModalOpen = true;
   }
 
-  async function handleSaveTask() {
+  async function handleSaveTask(close = true) {
     if (!selectedTask) return;
 
     try {
@@ -102,9 +102,23 @@
         t.id === updatedTask.id ? updatedTask : t,
       );
       selectedTask = updatedTask;
-      isModalOpen = false;
+      if (close) {
+        isModalOpen = false;
+      }
     } catch (error) {
       console.error("Failed to update task:", error);
+    }
+  }
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === "Enter") {
+      const target = e.target as HTMLElement;
+      // If we're in a textarea, only close on Shift+Enter or Ctrl+Enter
+      if (target.tagName === "TEXTAREA" && !e.shiftKey && !e.ctrlKey) {
+        return;
+      }
+      e.preventDefault();
+      handleSaveTask(true);
     }
   }
 
@@ -153,12 +167,16 @@
     </Dialog.Header>
 
     {#if selectedTask}
-      <div class="space-y-4 py-4">
+      <div
+        class="space-y-4 py-2"
+        onkeydown={handleKeyDown}
+        role="none"
+      >
         <!-- Completed checkbox -->
         <div class="flex items-center gap-3">
           <Checkbox
             bind:checked={editCompleted}
-            onCheckedChange={handleSaveTask}
+            onCheckedChange={() => handleSaveTask(false)}
             class={cn(
               "size-5 rounded-lg",
               selectedTask.priority
