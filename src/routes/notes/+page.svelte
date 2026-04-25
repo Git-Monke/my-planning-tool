@@ -49,6 +49,45 @@
 
   let searchQuery = $state("");
   let loading = $state(false);
+  let expandedNotes = $state(new Set<string>());
+
+  function toggleExpanded(id: string) {
+    const newSet = new Set(expandedNotes);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    expandedNotes = newSet;
+  }
+
+  function handleTextareaInput(id: string, event: Event) {
+    const target = event.currentTarget as HTMLTextAreaElement;
+    updateNote(id, "description", target.value);
+    
+    // Auto-resize if expanded
+    if (expandedNotes.has(id)) {
+      target.style.height = "auto";
+      target.style.height = target.scrollHeight + "px";
+    }
+  }
+
+  // Effect to auto-resize textarea when expanded/collapsed
+  $effect(() => {
+    // Track expandedNotes so effect re-runs on changes
+    const _ = expandedNotes;
+    for (const note of notes) {
+      const textarea = document.querySelector(`[data-textarea-id="${note.id}"]`) as HTMLTextAreaElement | null;
+      if (textarea) {
+        if (expandedNotes.has(note.id)) {
+          textarea.style.height = "auto";
+          textarea.style.height = textarea.scrollHeight + "px";
+        } else {
+          textarea.style.height = "";
+        }
+      }
+    }
+  });
 
   // Filtered notes based on search
   const filteredNotes = $derived(
@@ -143,7 +182,24 @@
         </div>
       {:else}
         {#each filteredNotes as note (note.id)}
-          <div class="rounded-lg border bg-card p-4 flex flex-col gap-2">
+          <div class="rounded-lg border bg-card p-4 flex flex-col gap-2 relative group">
+            <!-- Expand/Collapse button -->
+            <button
+              onclick={() => toggleExpanded(note.id)}
+              class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+              title={expandedNotes.has(note.id) ? "Collapse" : "Expand"}
+            >
+              {#if expandedNotes.has(note.id)}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m18 15-6-6-6 6"/>
+                </svg>
+              {:else}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m6 9 6 6 6-6"/>
+                </svg>
+              {/if}
+            </button>
+
             <!-- Title input -->
             <input
               type="text"
@@ -151,20 +207,41 @@
               oninput={(e) =>
                 updateNote(note.id, "title", e.currentTarget.value)}
               placeholder="Note title"
-              class="text-base font-semibold bg-transparent border-none outline-none focus:ring-0 p-0 placeholder:text-muted-foreground/50"
+              class="text-base font-semibold bg-transparent border-none outline-none focus:ring-0 p-0 pr-8 placeholder:text-muted-foreground/50"
             />
             <!-- Description textarea -->
-            <textarea
-              value={note.description}
-              oninput={(e) =>
-                updateNote(note.id, "description", e.currentTarget.value)}
-              placeholder="Write your note..."
-              rows="3"
-              class="text-sm text-muted-foreground bg-transparent border-none outline-none focus:ring-0 p-0 resize-none placeholder:text-muted-foreground/50"
-            ></textarea>
+            <div class="relative note-content" class:expanded={expandedNotes.has(note.id)}>
+              <textarea
+                data-textarea-id={note.id}
+                value={note.description}
+                oninput={(e) => handleTextareaInput(note.id, e)}
+                onclick={() => !expandedNotes.has(note.id) && toggleExpanded(note.id)}
+                placeholder="Write your note..."
+                rows={3}
+                class="text-sm text-muted-foreground bg-transparent border-none outline-none focus:ring-0 p-0 pr-6 resize-none placeholder:text-muted-foreground/50 w-full"
+              ></textarea>
+              <!-- Collapsed indicator gradient -->
+              {#if !expandedNotes.has(note.id)}
+                <div class="absolute bottom-0 left-0 right-6 h-6 bg-gradient-to-t from-card to-transparent pointer-events-none"></div>
+              {/if}
+            </div>
           </div>
         {/each}
       {/if}
     </div>
   </div>
 </div>
+
+<style>
+  .note-content textarea {
+    max-height: 5rem;
+    overflow: hidden;
+  }
+  
+  .note-content.expanded textarea {
+    max-height: none;
+    overflow: visible;
+  }
+</style>
+
+
