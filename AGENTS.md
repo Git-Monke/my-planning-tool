@@ -1,43 +1,74 @@
 # Codebase Overview
 
 ## Stack
-- **Tauri 2** (Rust backend) + **Svelte 5** (SvelteKit frontend)
-- **shadcn-svelte** (Bits UI, Tailwind) — add UI primitives with `npx shadcn-svelte add`; list/catalog in `COMPONENTS.txt` at repo root. Installed code lives under `src/lib/components/ui/`.
-- Built with Vite, TypeScript, `adapter-static`
-- **Verify builds with `npm run build`** (not `cargo check`) — this catches Svelte/TS type errors and Vite bundling issues. Use `cargo check` only if editing Rust under `src-tauri/`.
+- **Tauri 2** (Rust + SQLite via sqlx) + **Svelte 5** (SvelteKit frontend)
+- **shadcn-svelte** (Bits UI, Tailwind) — add UI with `npx shadcn-svelte add`; installed components under `src/lib/components/ui/`
+- **Vite** + TypeScript + `adapter-static`
+- **Build**: `npm run build` catches Svelte/TS/Vite errors; use `cargo check` only for Rust changes
 
 ## Project Structure
 
 ### Frontend (`src/`)
-- `routes/+layout.svelte` — **Root app shell:** `SidebarProvider` + collapsible shadcn **Sidebar** (left) wrapped in `sidebar-desktop-hover.svelte` (desktop: expand on **hover** over the sidebar, **instant collapse** on leave; `open` starts **false** / icon mode). **No** top “App” block inside the sidebar—`AppSidebar` is the first child. `SidebarInset` with a **mobile-only** top bar (`SidebarTrigger` + `md:hidden` on the header), main `<slot>`, and an **Agent chat** placeholder column (`ScrollArea` + `Separator`). Imports `../app.css`.
-- `routes/+layout.ts` — Enables prerendering & disables SSR
-- `routes/+page.ts` — `redirect(303, '/tasks')` for `/`
-- `routes/+page.svelte` — Static fallback if redirect is not applied (e.g. prerender edge cases)
-- `routes/tasks/+page.svelte` — Tasks page: groups tasks by date (undated → dated). Spacing uses `py-8 px-6` on the outer wrapper.
-- `routes/calendar/+page.svelte` — Calendar placeholder (center column)
-- `routes/notes/+page.svelte` — Notes placeholder (center column)
-- `lib/components/main-nav.svelte` — **Tasks / Calendar / Notes** in the **sidebar** via `SidebarMenu` + `SidebarMenuButton` (and `<a href>` with `child` snippet); each item has a **Lucide icon** (`list-todo`, `calendar`, `file-text`) and **label text hidden when the rail is collapsed** (`group-data-[state=collapsed]:hidden` so the nearest `group` with `data-state` is the shadcn sidebar root). **Tooltips** when the rail is in icon mode; active route from `$app/state` → `page.url.pathname`
-- `lib/components/app-sidebar.svelte` — `SidebarContent` with **Navigation** `Group` + `MainNav`
-- `lib/components/sidebar-desktop-hover.svelte` — `useSidebar()`; desktop only wraps the `Sidebar` root with `mouseenter` / `mouseleave` → `setOpen` (not used when `isMobile` — mobile uses the `Sheet` sidebar + trigger)
-- `lib/components/ui/*` — shadcn-svelte copy-paste components (e.g. `sidebar`, `button`, `card`, `scroll-area`, `separator`, …). **Sidebar** width/collapse motion uses a slightly longer duration and a smooth cubic easing (see `sidebar.svelte` / `sidebar-rail` / `sidebar-group-label`); `motion-reduce` disables the main panel transition.
-- `lib/utils.ts` — `cn()` and related helpers used by shadcn
-- `app.css` — **Tailwind v4** entry: `@import "tailwindcss"`, then **`@source` glob** over `./**/*` under `src/` so class names in `.svelte` and TS/JS are generated; shadcn theme CSS variables, `tw-animate-css`, `shadcn-svelte/tailwind.css`, Inter. The root **layout** imports this file; do not move global tokens out of `app.css` without updating `@source` if the build stops including utilities.
-- `app.html` — HTML shell
+
+| Path | Description |
+|------|-------------|
+| `routes/+layout.svelte` | Root shell: `SidebarProvider` → hover-expand sidebar → `SidebarInset` → main content + right **Agent chat** column (placeholder). Mobile: `SidebarTrigger` in header |
+| `routes/+layout.ts` | Prerender enabled, SSR disabled |
+| `routes/+page.ts` | Redirects `/` → `/tasks` |
+| `routes/tasks/+page.svelte` | **Working task CRUD** — loads via `invoke("get_tasks")`, groups by date (undated → dated), sorts by priority |
+| `routes/calendar/+page.svelte` | Placeholder |
+| `routes/notes/+page.svelte` | Placeholder |
+| `lib/components/app-sidebar.svelte` | Sidebar content wrapper, contains `MainNav` |
+| `lib/components/main-nav.svelte` | **Sidebar nav**: Tasks / Calendar / Notes with Lucide icons (`list-todo`, `calendar`, `file-text`). Labels hidden when collapsed (`group-data-[state=collapsed]:hidden`) |
+| `lib/components/main-route-shortcuts.svelte` | **Keyboard shortcuts**: `E` → Tasks, `R` → Calendar, `T` → Notes (disabled when typing in inputs) |
+| `lib/components/sidebar-desktop-hover.svelte` | Desktop sidebar: `mouseenter` → expand, `mouseleave` → collapse instantly. Uses `useSidebar()`, disabled on mobile |
+| `lib/components/tasks/task-list.svelte` | Renders a task group (Undated/Tomorrow/etc.), contains "New Task" button, sorts by priority |
+| `lib/components/tasks/task-item.svelte` | **Individual task**: display mode (double-click to edit) + editing mode (title, notes, priority buttons, time, duration). Checkbox toggles completion, `Shift+Enter` saves |
+| `lib/types.ts` | `Task` interface: `id`, `title`, `notes?`, `priority?` (1-3), `due_date?` (YYYY-MM-DD), `due_time?`, `duration?`, `completed`, `created_at`, `updated_at` |
+| `lib/utils.ts` | `cn()` helper for className merging |
+| `lib/components/ui/*` | shadcn-svelte components (button, input, textarea, checkbox, card, scroll-area, separator, sidebar, sheet, tooltip, skeleton) |
+| `app.css` | **Tailwind v4** entry: `@import "tailwindcss"`, `@source` glob, shadcn theme CSS variables, Inter font. Contains all color tokens (`--background`, `--foreground`, `--sidebar-*`, etc.) |
+| `app.html` | HTML shell |
 
 ### Backend (`src-tauri/`)
-- `src/main.rs` — Entry point, calls `run()` from lib
-- `src/lib.rs` — `run()` function sets up Tauri app (greet command lives here)
-- `tauri.conf.json` — App config (800x600 window, all targets)
+
+| Path | Description |
+|------|-------------|
+| `src/main.rs` | Entry point, calls `run()` |
+| `src/lib.rs` | **Tauri commands**: `greet`, `get_tasks`, `create_task`, `update_task`, `delete_task`. Database setup in `setup_db()` → SQLite at `{app_data}/nota.db`, runs migrations automatically |
+| `tauri.conf.json` | App config (800x600 default), targets |
+| `migrations/*.sql` | Database migrations |
 
 ### Config
-- `components.json` — shadcn-svelte (aliases: `$lib/components`, `$lib/components/ui`, …)
-- `package.json` — npm scripts, SvelteKit/Tauri dependencies
-- `vite.config.js` — Vite configuration
-- `svelte.config.js` — SvelteKit/adapter-static setup
 
-### Frontend Design
+| File | Purpose |
+|------|---------|
+| `components.json` | shadcn-svelte path aliases |
+| `package.json` | npm scripts, deps |
+| `vite.config.js` | Vite config |
+| `svelte.config.js` | SvelteKit + adapter-static |
 
-When working on the frontend, the goal is minimal, clean, square. Colors that are easy on the eyes (pastel browns), but I would just have a theme section so colors and fonts can be easily changed. Inter for the font, since this is mostly information organization it needs to be very legible. **Prefer adjusting semantic tokens in `app.css` (e.g. `--background`, `--sidebar-*`)** to match that direction while staying compatible with shadcn.
+## Current Features
 
-## Current State
-The Tauri `greet` demo has been **removed** from the default view; `/` redirects to **Tasks**; the shell has **Tasks**, **Calendar**, and **Notes** placeholders. Use `AGENTS.md` and `components.json` to extend the shell, add shadcn pieces, and wire real task/calendar/notes/chat features. The README.md includes info about the scope of the project (all features and requirements).
+- **Tasks**: Full CRUD (create, read, update, delete) with SQLite persistence. Grouped by due date, sorted by priority. Inline editing (double-click), priority levels (1=low/gray, 2=medium/amber, 3=high/red), optional time & duration. Checkbox toggles completion with visual feedback.
+- **Navigation**: Sidebar with hover-expand on desktop, tooltips when collapsed. Keyboard shortcuts `E`/`R``/T`.
+- **Right panel**: Agent chat placeholder (fixed width, scrollable).
+- **Calendar/Notes**: Empty placeholders (Routes exist, no UI yet).
+
+## Theme & Design
+
+- **Colors**: Controlled via CSS variables in `app.css` (shadcn semantic tokens). Default: light mode with soft grays, amber accents for medium priority, red for high.
+- **Typography**: Inter (variable font via `@fontsource-variable/inter`).
+- **Spacing**: Tasks page uses `py-8 px-6`, max-width centered (`max-w-2xl mx-auto`).
+- **Style**: Minimal, square corners (`--radius: 0rem`), clean lines. Adjust `--sidebar-*` tokens for sidebar theming.
+
+## Key Patterns
+
+- **Svelte 5 runes**: `$state`, `$derived`, `$derived.by`, `$effect`, `$props()` with snippets
+- **Tauri invoke**: Frontend calls Rust commands via `@tauri-apps/api/core` → `invoke()`
+- **SQLite**: sqlx with migrations, managed pool in Tauri state
+- **Routing**: SvelteKit file-based (`routes/`)
+
+## Future Work
+
+See `README.md` for full feature scope. Start with Calendar or Notes placeholders, or extend Tasks with date picking, recurrence, subtasks, etc.
