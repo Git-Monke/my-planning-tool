@@ -13,7 +13,7 @@
   let sidebarOpen = $state(false);
 </script>
 
-<Sidebar.SidebarProvider bind:open={sidebarOpen} class="min-h-svh w-full">
+<Sidebar.SidebarProvider bind:open={sidebarOpen} class="h-svh w-full">
   <MainRouteShortcuts />
   <SidebarDesktopHover>
     <Sidebar.Sidebar
@@ -31,7 +31,7 @@
       <Sidebar.SidebarTrigger />
     </header>
     <div class="flex min-h-0 w-full min-w-0 flex-1">
-      <div class="min-h-0 min-w-0 flex-1 overflow-auto p-0">
+      <div class="min-h-0 min-w-0 flex-1 overflow-hidden p-0">
         {@render children()}
       </div>
       <Separator orientation="vertical" class="h-auto" />

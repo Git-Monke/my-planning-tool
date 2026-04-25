@@ -57,8 +57,13 @@
 - **Tasks**: Full CRUD (create, read, update, delete) with SQLite persistence. Undated tasks always visible at top. Dated tasks grouped by day (today forward), every day shown even if empty. Infinite scroll loads 30 days at a time. Inline editing (double-click), priority levels (1=low/gray, 2=medium/amber, 3=high/red), optional time & duration. Checkbox toggles completion with visual feedback. "New Task" button in each day group creates task with that group's date (2026-04-24).
 - **Navigation**: Sidebar with hover-expand on desktop, tooltips when collapsed. Keyboard shortcuts `E`/`R`/`T`.
 - **Right panel**: Agent chat placeholder (fixed width, scrollable).
-- **Calendar**: 1-day view with configurable hour grid (start/end times). Displays due-date tasks as thick lines with priority-coded colors and time-blocked tasks as pastel blocks. Integrated task detail modal for quick edits and completion toggling. Previous/Next day navigation.
+- **Calendar**: 1-day view with configurable hour grid (start/end times). Displays due-date tasks as thick lines with priority-coded colors and time-blocked tasks as pastel blocks. Integrated task detail modal for quick edits and completion toggling. Previous/Next day navigation. Internal scrolling for hour grid.
 - **Notes**: Empty placeholder (Route exists, no UI yet).
+
+## Recent Changes (2026-04-24)
+- Fixed calendar scrolling issue by locking layout to viewport height.
+- Fixed task completion checkbox state sync in calendar modal.
+- Added auto-close behavior to task modal after saving.
 
 ## Theme & Design
 
