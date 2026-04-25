@@ -13,9 +13,18 @@ export interface Task {
 	priority?: number; // 1 (low), 2 (medium), 3 (high)
 	due_date?: string; // YYYY-MM-DD
 	due_time?: string; // HH:MM
-	start_time?: string;
-	duration?: number;
+	duration?: number; // minutes
 	completed: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface TimeBlock {
+	id: string;
+	task_id: string;
+	start_date: string; // YYYY-MM-DD
+	start_time: string; // HH:MM:SS
+	duration: number; // minutes
 	created_at: string;
 	updated_at: string;
 }

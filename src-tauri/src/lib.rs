@@ -30,9 +30,20 @@ pub struct TaskRow {
     pub priority: Option<i32>,
     pub due_date: Option<String>,
     pub due_time: Option<String>,
-    pub start_time: Option<String>,
     pub duration: Option<i32>,
     pub completed: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+// TimeBlock row structure for database queries
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct TimeBlockRow {
+    pub id: String,
+    pub task_id: String,
+    pub start_date: String,
+    pub start_time: String,
+    pub duration: i32,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -154,18 +165,16 @@ async fn get_tasks(
     from_date: Option<String>,
 ) -> Result<Vec<TaskRow>, String> {
     let tasks = if let Some(from) = from_date {
-        // Fetch tasks with due_date >= from_date, ordered by due_date
         sqlx::query_as::<_, TaskRow>(
-            "SELECT id, title, notes, priority, due_date, due_time, start_time, duration, completed, created_at, updated_at FROM tasks WHERE due_date >= ? ORDER BY due_date ASC, due_time ASC"
+            "SELECT id, title, notes, priority, due_date, due_time, duration, completed, created_at, updated_at FROM tasks WHERE due_date >= ? ORDER BY due_date ASC, due_time ASC"
         )
         .bind(&from)
         .fetch_all(pool.inner())
         .await
         .map_err(|e| e.to_string())?
     } else {
-        // Original query: all tasks ordered by created_at
         sqlx::query_as::<_, TaskRow>(
-            "SELECT id, title, notes, priority, due_date, due_time, start_time, duration, completed, created_at, updated_at FROM tasks ORDER BY created_at DESC"
+            "SELECT id, title, notes, priority, due_date, due_time, duration, completed, created_at, updated_at FROM tasks ORDER BY created_at DESC"
         )
         .fetch_all(pool.inner())
         .await
@@ -205,7 +214,7 @@ async fn create_task(
 
     // Return the created task
     let task = sqlx::query_as::<_, TaskRow>(
-        "SELECT id, title, notes, priority, due_date, due_time, start_time, duration, completed, created_at, updated_at FROM tasks WHERE id = ?"
+        "SELECT id, title, notes, priority, due_date, due_time, duration, completed, created_at, updated_at FROM tasks WHERE id = ?"
     )
     .bind(&id)
     .fetch_one(pool.inner())
@@ -244,7 +253,7 @@ async fn update_task(
 
     // Return the updated task
     let task = sqlx::query_as::<_, TaskRow>(
-        "SELECT id, title, notes, priority, due_date, due_time, start_time, duration, completed, created_at, updated_at FROM tasks WHERE id = ?"
+        "SELECT id, title, notes, priority, due_date, due_time, duration, completed, created_at, updated_at FROM tasks WHERE id = ?"
     )
     .bind(&id)
     .fetch_one(pool.inner())
@@ -263,6 +272,31 @@ async fn delete_task(pool: tauri::State<'_, SqlitePool>, id: String) -> Result<(
         .map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+// TimeBlock commands
+#[tauri::command]
+async fn get_time_blocks(
+    pool: tauri::State<'_, SqlitePool>,
+    date: Option<String>,
+) -> Result<Vec<TimeBlockRow>, String> {
+    let time_blocks = if let Some(from) = date {
+        sqlx::query_as::<_, TimeBlockRow>(
+            "SELECT id, task_id, start_date, start_time, duration, created_at, updated_at FROM time_blocks WHERE start_date = ? ORDER BY start_time ASC"
+        )
+        .bind(&from)
+        .fetch_all(pool.inner())
+        .await
+        .map_err(|e| e.to_string())?
+    } else {
+        sqlx::query_as::<_, TimeBlockRow>(
+            "SELECT id, task_id, start_date, start_time, duration, created_at, updated_at FROM time_blocks ORDER BY start_date ASC, start_time ASC"
+        )
+        .fetch_all(pool.inner())
+        .await
+        .map_err(|e| e.to_string())?
+    };
+    Ok(time_blocks)
 }
 
 async fn setup_db(app_handle: &tauri::AppHandle) -> Result<SqlitePool, Box<dyn std::error::Error>> {
@@ -309,7 +343,8 @@ pub fn run() {
             get_tasks,
             create_task,
             update_task,
-            delete_task
+            delete_task,
+            get_time_blocks
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

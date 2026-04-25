@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Task } from "$lib/types.js";
+  import type { Task, TimeBlock } from "$lib/types.js";
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
   import TaskMarker from "./task-marker.svelte";
@@ -7,6 +7,8 @@
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import ClockIcon from "@lucide/svelte/icons/clock";
+  import { invoke } from "@tauri-apps/api/core";
+  import { Spinner } from "$lib/components/ui/spinner";
 
   let {
     date,
@@ -26,6 +28,28 @@
 
   // Calculate hour height in pixels (adjustable)
   const hourHeight = 60;
+
+  // Time blocks state
+  let timeBlocks = $state<TimeBlock[]>([]);
+  let loadingBlocks = $state(true);
+
+  // Fetch time blocks when date changes
+  $effect(() => {
+    fetchTimeBlocks(date);
+  });
+
+  async function fetchTimeBlocks(dateStr: string) {
+    loadingBlocks = true;
+    try {
+      const blocks = await invoke<TimeBlock[]>("get_time_blocks", { date: dateStr });
+      timeBlocks = blocks;
+    } catch (error) {
+      console.error("Failed to fetch time blocks:", error);
+      timeBlocks = [];
+    } finally {
+      loadingBlocks = false;
+    }
+  }
 
   // Parse time string (HH:MM or H:MM AM/PM) to hours
   function parseTimeToHours(time: string | undefined): number {
@@ -57,20 +81,13 @@
   const tasksForDate = $derived(
     tasks.filter((t) => {
       const dueDateMatch = t.due_date === date;
-      // Also include tasks with start_time on this date
-      const startDate = t.start_time?.split("T")[0];
-      const startDateMatch = startDate === date;
-      return dueDateMatch || startDateMatch;
+      return dueDateMatch;
     }),
   );
 
-  // Separate time-blocked tasks (have start_time) from due-only tasks
-  const timeBlockedTasks = $derived(
-    tasksForDate.filter((t) => t.start_time && t.duration),
-  );
-
+  // Due-only tasks (no time blocks anymore - those are separate)
   const dueOnlyTasks = $derived(
-    tasksForDate.filter((t) => !t.start_time && t.due_date),
+    tasksForDate.filter((t) => !t.due_date),
   );
 
   // Group due-only tasks by due_time for markers
@@ -260,13 +277,35 @@
         {/if}
       {/if}
 
-      <!-- Time-blocked tasks -->
-      {#each timeBlockedTasks as task}
-        {@const top = getTopOffset(task.start_time?.split("T")[1])}
-        {@const duration = task.duration || 30}
-        {@const height = (duration / 60) * hourHeight}
-        <TaskBlock {task} topOffset={top} {height} {onTaskClick} />
-      {/each}
+      <!-- Time blocks from the new time_blocks table -->
+      {#if loadingBlocks}
+        <div class="absolute top-4 left-1/2 -translate-x-1/2">
+          <Spinner class="size-4" />
+        </div>
+      {:else}
+        {#each timeBlocks as block}
+          {@const top = getTopOffset(block.start_time)}
+          {@const height = (block.duration / 60) * hourHeight}
+          <div
+            class="absolute left-0 right-0 border px-2 py-1 cursor-pointer transition-all hover:shadow-md hover:z-20 group"
+            style="top: {top}px; height: {height}px;"
+          >
+            <div class="flex items-start justify-between h-full gap-2 overflow-hidden">
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium leading-tight truncate text-slate-700 dark:text-slate-300">
+                  Block {block.id.slice(0, 8)}
+                </h4>
+                <p class="text-xs text-muted-foreground mt-0.5">
+                  {block.duration} min
+                </p>
+              </div>
+            </div>
+            <div class="absolute bottom-0.5 left-2 text-[10px] opacity-60 font-medium text-muted-foreground">
+              {block.start_time}
+            </div>
+          </div>
+        {/each}
+      {/if}
 
       <!-- Due date markers (tasks without start_time) -->
       {#each [...dueTasksByTime.entries()] as [timeKey, tasksAtTime]}
