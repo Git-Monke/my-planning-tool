@@ -229,6 +229,7 @@ export class ChatState {
   messages = $state<Message[]>([]);
   isLoading = $state(false);
   apiKey = $state<string>("");
+  currentUserContext = $state<string | null>(null);
 
   constructor() {
     if (typeof window !== "undefined") {
@@ -241,6 +242,10 @@ export class ChatState {
     if (typeof window !== "undefined") {
       localStorage.setItem("groq_api_key", key);
     }
+  }
+
+  updateUserContext(context: string | null) {
+    this.currentUserContext = context;
   }
 
   clearChat() {
@@ -285,7 +290,7 @@ RULES:
 - NEVER pass null for optional parameters - omit them entirely
 - NEVER include fields with null values in tool calls
 - NEVER show users IDs - just format data nicely
-- Call get_tasks, get_notes, or get_time_blocks_for_date first to see current data before making changes
+- Unless you can alreadya see the relevant data, call get_tasks, get_notes, or get_time_blocks_for_date first to find what you need to know before making changes
 - After creating/updating/deleting time blocks, show the day's schedule using get_time_blocks_for_date
 - Priorty 1 is the LOWEST priority, priority 3 is the HIGHEST
 - DO NOT RETURN DATA AS A TABLE, The user cannot read tables. 
@@ -407,6 +412,13 @@ Answer questions directly from the data you fetch.`
         // Build context with fresh data
         const systemPrompt = await this.buildContextSystemPrompt();
         const messagesToSend = [systemPrompt, ...this.messages];
+
+        if (this.currentUserContext) {
+          messagesToSend.push({
+            role: "user",
+            content: `[UI Context]: ${this.currentUserContext}`
+          });
+        }
 
         const response = await this.sendApiRequest(messagesToSend);
         const data = await response.json();

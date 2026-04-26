@@ -9,6 +9,7 @@
   import ClockIcon from "@lucide/svelte/icons/clock";
   import { invoke } from "@tauri-apps/api/core";
   import { Spinner } from "$lib/components/ui/spinner";
+  import { chatState } from "$lib/ai.svelte.ts";
 
   let {
     date,
@@ -38,11 +39,28 @@
     fetchTimeBlocks(date);
   });
 
+  // Update AI context when date or time blocks change
+  $effect(() => {
+    const blocksSummary =
+      timeBlocks.length > 0
+        ? timeBlocks
+            .map((b) => `${b.start_time.slice(0, 5)}: ${b.title}`)
+            .join(", ")
+        : "No time blocks scheduled";
+
+    chatState.updateUserContext(
+      `The user is currently looking at ${formattedDate}. This is the current state of the time blocks for that day: ${blocksSummary}`,
+    );
+  });
+
   import { onMount } from "svelte";
   onMount(() => {
     const handleRefresh = () => fetchTimeBlocks(date);
     window.addEventListener("app-refresh-data", handleRefresh);
-    return () => window.removeEventListener("app-refresh-data", handleRefresh);
+    return () => {
+      window.removeEventListener("app-refresh-data", handleRefresh);
+      chatState.updateUserContext(null);
+    };
   });
 
   async function fetchTimeBlocks(dateStr: string) {
@@ -86,6 +104,38 @@
   function timeToMinutes(time: string | undefined): number {
     const hours = parseTimeToHours(time);
     return hours * 60;
+  }
+
+  // Calculate end time in minutes for a time block
+  function getBlockEndMinutes(block: TimeBlock): number {
+    const startMinutes = timeToMinutes(block.start_time.slice(0, 5)); // Convert HH:MM:SS to HH:MM
+    return startMinutes + block.duration;
+  }
+
+  // Check if two time blocks are adjacent (end of one = start of another)
+  function areBlocksAdjacent(block1: TimeBlock, block2: TimeBlock): boolean {
+    const end1 = getBlockEndMinutes(block1);
+    const start2 = timeToMinutes(block2.start_time.slice(0, 5));
+    return Math.abs(end1 - start2) < 1; // Within 1 minute threshold
+  }
+
+  // Add border classes for adjacent blocks
+  function getAdjacentClasses(
+    blockIndex: number,
+    timeBlocks: TimeBlock[],
+  ): string {
+    const currentBlock = timeBlocks[blockIndex];
+    let classes = "";
+
+    // Check if previous block ends right before this one starts
+    if (blockIndex > 0) {
+      const prevBlock = timeBlocks[blockIndex - 1];
+      if (areBlocksAdjacent(prevBlock, currentBlock)) {
+        classes += " border-t-0 "; // Remove top border
+      }
+    }
+
+    return classes.trim();
   }
 
   // Filter tasks for this date
@@ -298,7 +348,7 @@
           No time blocks
         </div>
       {:else}
-        {#each timeBlocks as block}
+        {#each timeBlocks as block, i}
           {@const task = {
             id: block.id,
             title: block.title,
@@ -312,7 +362,14 @@
           }}
           {@const top = getTopOffset(block.start_time)}
           {@const height = (block.duration / 60) * hourHeight}
-          <TaskBlock {task} topOffset={top} {height} {onTaskClick} />
+          {@const adjacentClasses = getAdjacentClasses(i, timeBlocks)}
+          <TaskBlock
+            {task}
+            topOffset={top}
+            {height}
+            {onTaskClick}
+            {adjacentClasses}
+          />
         {/each}
       {/if}
 

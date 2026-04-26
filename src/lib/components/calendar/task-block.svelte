@@ -8,11 +8,13 @@
     topOffset = 0,
     height = 60,
     onTaskClick,
+    adjacentClasses = "",
   }: {
     task: Task;
     topOffset?: number;
     height?: number;
     onTaskClick?: (task: Task) => void;
+    adjacentClasses?: string;
   } = $props();
 
   // Parse start_time (HH:MM) to minutes from midnight
@@ -65,8 +67,8 @@
 
 <div
   class={cn(
-    "absolute left-0 right-0 border px-2 py-1 cursor-pointer transition-all",
-    "hover:shadow-md hover:z-20 group",
+    "absolute left-0 right-0 border px-2 py-1 cursor-pointer transition-all bg-opacity-50 group hover:bg-opacity-100",
+    adjacentClasses,
     task.completed && "opacity-50",
     colors.bg,
     colors.border,
@@ -105,10 +107,5 @@
         <CheckIcon class={cn("size-4", colors.text, "opacity-60")} />
       </div>
     {/if}
-  </div>
-
-  <!-- Time label at bottom -->
-  <div class="absolute bottom-0.5 left-2 text-[10px] opacity-60 font-medium">
-    {task.due_time || ""}
   </div>
 </div>
