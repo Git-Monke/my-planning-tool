@@ -29,6 +29,7 @@
 | `lib/components/tasks/task-list.svelte` | Renders a task group (Undated/Tomorrow/etc.), contains "New Task" button, sorts by priority |
 | `lib/components/tasks/task-item.svelte` | **Individual task**: display mode (double-click to edit) + editing mode (title, notes, priority buttons, time, duration). Checkbox toggles completion, `Shift+Enter` saves |
 | `lib/types.ts` | `Task` interface: `id`, `title`, `notes?`, `priority?` (1-3), `due_date?` (YYYY-MM-DD), `due_time?`, `duration?`, `completed`, `created_at`, `updated_at`. `Note` interface: `id`, `title`, `description?`, `created_at`, `updated_at`. `TimeBlock` interface: `id`, `task_id`, `start_date`, `start_time`, `duration`, `created_at`, `updated_at` |
+| `lib/ai.svelte.ts` | **AI Integration**: Defines tool definitions and the logic for executing tool calls via Tauri invokes, including result logging |
 | `lib/utils.ts` | `cn()` helper for className merging |
 | `lib/components/ui/*` | shadcn-svelte components (button, input, textarea, checkbox, card, scroll-area, separator, sidebar, sheet, tooltip, skeleton, spinner) |
 | `app.css` | **Tailwind v4** entry: `@import "tailwindcss"`, `@source` glob, shadcn theme CSS variables, Inter font. Contains all color tokens (`--background`, `--foreground`, `--sidebar-*`, etc.) |
@@ -59,6 +60,11 @@
 - **Right panel**: Agent chat placeholder (fixed width, scrollable).
 - **Calendar**: 1-day view with configurable hour grid (start/end times). Fetches time blocks from the `time_blocks` table (via `get_time_blocks` command) and renders them inline. Due-date tasks display as thick lines with priority-coded colors. Integrated task detail modal for quick edits and completion toggling. Previous/Next day navigation. Internal scrolling for hour grid.
 - **Notes**: Full CRUD with SQLite persistence. Searchable list, expand/collapse for long notes, debounced auto-save on title/description changes, delete with confirmation. Ordered by `updated_at DESC`.
+
+## Recent Changes (2026-04-26)
+- Implemented partial updates for notes and time blocks in the Rust backend using `NoteUpdateInput` and `TimeBlockUpdateInput` with `COALESCE` in SQL queries.
+- Added detailed logging for AI tool calls (input arguments and results) in `ai.svelte.ts` for better debugging.
+- Updated AI tool descriptions to clarify that all fields are optional for update operations.
 
 ## Recent Changes (2026-04-25)
 - Added notes backend persistence with SQLite. Full CRUD operations (create, read, update, delete) connected to frontend.

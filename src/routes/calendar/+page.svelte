@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Task } from "$lib/types.js";
   import ViewToggle from "$lib/components/calendar/view-toggle.svelte";
+  import DayCountSwitcher from "$lib/components/calendar/day-count-switcher.svelte";
   import DayView from "$lib/components/calendar/day-view.svelte";
   import { Spinner } from "$lib/components/ui/spinner";
   import { onMount } from "svelte";
@@ -14,10 +15,22 @@
   import ClockIcon from "@lucide/svelte/icons/clock";
   import HourglassIcon from "@lucide/svelte/icons/hourglass";
 
-  let currentView = $state<"day" | "3days" | "month">("day");
+  let currentView = $state<"day" | "month">("day");
+  let dayCount = $state(1);
   let selectedDate = $state(getTodayString());
   let allTasks = $state<Task[]>([]);
   let loading = $state(true);
+
+  // Screen width tracking for responsive day count
+  let screenWidth = $state(1200);
+  const isWideScreen = $derived(screenWidth >= 800);
+
+  // Bound dayCount by screen width
+  $effect(() => {
+    if (!isWideScreen && dayCount > 1) {
+      dayCount = 1;
+    }
+  });
 
   // Modal state
   let selectedTask = $state<Task | null>(null);
@@ -62,17 +75,32 @@
 
   onMount(() => {
     loadTasks();
+    
+    // Track screen width
+    const updateWidth = () => {
+      screenWidth = window.innerWidth;
+    };
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    
     const handleRefresh = () => loadTasks();
     window.addEventListener("app-refresh-data", handleRefresh);
-    return () => window.removeEventListener("app-refresh-data", handleRefresh);
+    return () => {
+      window.removeEventListener("resize", updateWidth);
+      window.removeEventListener("app-refresh-data", handleRefresh);
+    };
   });
 
   function handleDateChange(newDate: string) {
     selectedDate = newDate;
   }
 
-  function handleViewChange(view: "day" | "3days" | "month") {
+  function handleViewChange(view: "day" | "month") {
     currentView = view;
+    // Reset dayCount when switching away from day view
+    if (view !== "day") {
+      dayCount = 1;
+    }
   }
 
   function handleTaskClick(task: Task) {
@@ -140,7 +168,12 @@
   <!-- Header -->
   <div class="flex items-center justify-between px-4 py-3 border-b">
     <h1 class="text-xl font-semibold">Calendar</h1>
-    <ViewToggle bind:currentView onViewChange={handleViewChange} />
+    <div class="flex items-center gap-2">
+      {#if currentView === "day"}
+        <DayCountSwitcher bind:dayCount disabled={!isWideScreen} />
+      {/if}
+      <ViewToggle bind:currentView onViewChange={handleViewChange} />
+    </div>
   </div>
 
   <!-- Main content -->
@@ -152,6 +185,7 @@
     {:else if currentView === "day"}
       <DayView
         date={selectedDate}
+        {dayCount}
         tasks={allTasks}
         onDateChange={handleDateChange}
         onTaskClick={handleTaskClick}
@@ -160,7 +194,7 @@
       <div
         class="flex items-center justify-center h-full text-muted-foreground"
       >
-        <p>{currentView === "3days" ? "3 Day" : "Monthly"} view coming soon</p>
+        <p>Monthly view coming soon</p>
       </div>
     {/if}
   </div>

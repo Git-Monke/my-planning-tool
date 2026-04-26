@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from "$lib/components/ui/button";
 
-	type ViewType = "day" | "3days" | "month";
+	type ViewType = "day" | "month";
 
 	let {
 		currentView = $bindable("day"),
@@ -13,7 +13,6 @@
 
 	const views: { value: ViewType; label: string }[] = [
 		{ value: "day", label: "Day" },
-		{ value: "3days", label: "3 Days" },
 		{ value: "month", label: "Month" },
 	];
 
