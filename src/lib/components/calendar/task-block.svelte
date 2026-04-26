@@ -67,7 +67,7 @@
 
 <div
   class={cn(
-    "absolute left-0 right-0 border px-2 py-1 cursor-pointer transition-all bg-opacity-50 group hover:bg-opacity-100",
+    "absolute left-0 right-0 border px-2 py-1 cursor-pointer transition-bg-opacity bg-opacity-50 group hover:bg-opacity-100",
     adjacentClasses,
     task.completed && "opacity-50",
     colors.bg,

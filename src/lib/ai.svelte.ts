@@ -52,14 +52,15 @@ const TOOLS: ToolDefinition[] = [
   {
     type: "function",
     function: {
-      name: "get_time_blocks_for_date",
-      description: "Get time blocks for a specific date.",
+      name: "get_date_range",
+      description: "Get all tasks and time blocks for a date range. Returns tasks by due_date and time_blocks by start_date within the range.",
       parameters: {
         type: "object",
         properties: {
-          date: { type: "string", description: "YYYY-MM-DD" }
+          start_date: { type: "string", description: "YYYY-MM-DD" },
+          end_date: { type: "string", description: "YYYY-MM-DD" }
         },
-        required: ["date"]
+        required: ["start_date", "end_date"]
       }
     }
   },
@@ -274,7 +275,7 @@ Today's date is: ${today}.
 TOOLS:
 - get_tasks: Get all tasks, optionally filtered by date (from_date: YYYY-MM-DD)
 - get_notes: Get all notes
-- get_time_blocks_for_date: Get time blocks for a specific date (date: YYYY-MM-DD required)
+- get_date_range: Get all tasks and time blocks for a date range (start_date/end_date: YYYY-MM-DD required)
 - create_task: Create task (title required, optional notes/priority/due_date/due_time/duration)
 - complete_task: Mark task complete (id required)
 - update_task: Update task (id required)
@@ -290,8 +291,8 @@ RULES:
 - NEVER pass null for optional parameters - omit them entirely
 - NEVER include fields with null values in tool calls
 - NEVER show users IDs - just format data nicely
-- Unless you can alreadya see the relevant data, call get_tasks, get_notes, or get_time_blocks_for_date first to find what you need to know before making changes
-- After creating/updating/deleting time blocks, show the day's schedule using get_time_blocks_for_date
+- Unless you can already see the relevant data, call get_date_range first to find what you need to know before making changes
+- After creating/updating/deleting time blocks, use get_date_range to confirm the changes
 - Priorty 1 is the LOWEST priority, priority 3 is the HIGHEST
 - DO NOT RETURN DATA AS A TABLE, The user cannot read tables. 
 
@@ -318,8 +319,8 @@ Answer questions directly from the data you fetch.`
           result = await invoke<Note[]>("get_notes");
           break;
 
-        case "get_time_blocks_for_date":
-          result = await invoke<TimeBlock[]>("get_time_blocks", { date: args.date as string });
+        case "get_date_range":
+          result = await invoke("get_date_range", { startDate: args.start_date as string, endDate: args.end_date as string });
           break;
 
         case "create_task":

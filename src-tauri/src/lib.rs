@@ -58,6 +58,15 @@ pub struct TimeBlockRow {
     pub updated_at: String,
 }
 
+// Date range response structure
+#[derive(Debug, Clone, Serialize)]
+pub struct DateRangeData {
+    pub start_date: String,
+    pub end_date: String,
+    pub tasks: Vec<TaskRow>,
+    pub time_blocks: Vec<TimeBlockRow>,
+}
+
 // Input for creating tasks (title required)
 #[derive(Debug, Clone, Deserialize)]
 pub struct TaskInput {
@@ -346,6 +355,40 @@ async fn get_time_blocks(
 }
 
 #[tauri::command]
+async fn get_date_range(
+    pool: tauri::State<'_, SqlitePool>,
+    start_date: String,
+    end_date: String,
+) -> Result<DateRangeData, String> {
+    // Fetch tasks with due_date in range
+    let tasks = sqlx::query_as::<_, TaskRow>(
+        "SELECT id, title, notes, priority, due_date, due_time, duration, completed, created_at, updated_at FROM tasks WHERE due_date BETWEEN ? AND ? ORDER BY due_date ASC, due_time ASC"
+    )
+    .bind(&start_date)
+    .bind(&end_date)
+    .fetch_all(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // Fetch time blocks with start_date in range
+    let time_blocks = sqlx::query_as::<_, TimeBlockRow>(
+        "SELECT id, title, notes, priority, start_date, start_time, duration, completed, created_at, updated_at FROM time_blocks WHERE start_date BETWEEN ? AND ? ORDER BY start_date ASC, start_time ASC"
+    )
+    .bind(&start_date)
+    .bind(&end_date)
+    .fetch_all(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(DateRangeData {
+        start_date,
+        end_date,
+        tasks,
+        time_blocks,
+    })
+}
+
+#[tauri::command]
 async fn create_time_block(
     pool: tauri::State<'_, SqlitePool>,
     input: TimeBlockInput,
@@ -479,6 +522,7 @@ pub fn run() {
             update_task,
             delete_task,
             get_time_blocks,
+            get_date_range,
             create_time_block,
             update_time_block,
             delete_time_block
