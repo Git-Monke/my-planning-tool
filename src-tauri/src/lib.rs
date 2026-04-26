@@ -14,10 +14,17 @@ pub struct Note {
     pub updated_at: String,
 }
 
-// Input for creating/updating notes
+// Input for creating notes
 #[derive(Debug, Clone, Deserialize)]
 pub struct NoteInput {
     pub title: String,
+    pub description: Option<String>,
+}
+
+// Input for updating notes (all fields optional)
+#[derive(Debug, Clone, Deserialize)]
+pub struct NoteUpdateInput {
+    pub title: Option<String>,
     pub description: Option<String>,
 }
 
@@ -75,7 +82,7 @@ pub struct TaskUpdateInput {
     pub completed: Option<bool>,
 }
 
-// Input for creating/updating time blocks (standalone)
+// Input for creating time blocks (standalone)
 #[derive(Debug, Clone, Deserialize)]
 pub struct TimeBlockInput {
     pub title: String,
@@ -84,6 +91,18 @@ pub struct TimeBlockInput {
     pub start_date: String,
     pub start_time: String,
     pub duration: i32,
+    pub completed: Option<bool>,
+}
+
+// Input for updating time blocks (all fields optional)
+#[derive(Debug, Clone, Deserialize)]
+pub struct TimeBlockUpdateInput {
+    pub title: Option<String>,
+    pub notes: Option<String>,
+    pub priority: Option<i32>,
+    pub start_date: Option<String>,
+    pub start_time: Option<String>,
+    pub duration: Option<i32>,
     pub completed: Option<bool>,
 }
 
@@ -145,13 +164,13 @@ async fn create_note(
 async fn update_note(
     pool: tauri::State<'_, SqlitePool>,
     id: String,
-    input: NoteInput,
+    input: NoteUpdateInput,
 ) -> Result<Note, String> {
     let now = chrono::Utc::now().to_rfc3339();
 
     sqlx::query(
         r#"
-        UPDATE notes SET title = ?, description = ?, updated_at = ?
+        UPDATE notes SET title = COALESCE(?, title), description = COALESCE(?, description), updated_at = ?
         WHERE id = ?
         "#
     )
@@ -369,13 +388,13 @@ async fn create_time_block(
 async fn update_time_block(
     pool: tauri::State<'_, SqlitePool>,
     id: String,
-    input: TimeBlockInput,
+    input: TimeBlockUpdateInput,
 ) -> Result<TimeBlockRow, String> {
     let now = chrono::Utc::now().to_rfc3339();
 
     sqlx::query(
         r#"
-        UPDATE time_blocks SET title = COALESCE(?, title), notes = COALESCE(?, notes), priority = COALESCE(?, priority), start_date = ?, start_time = ?, duration = ?, completed = COALESCE(?, completed), updated_at = ?
+        UPDATE time_blocks SET title = COALESCE(?, title), notes = COALESCE(?, notes), priority = COALESCE(?, priority), start_date = COALESCE(?, start_date), start_time = COALESCE(?, start_time), duration = COALESCE(?, duration), completed = COALESCE(?, completed), updated_at = ?
         WHERE id = ?
         "#
     )

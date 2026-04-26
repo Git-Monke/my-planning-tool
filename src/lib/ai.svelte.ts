@@ -86,7 +86,7 @@ const TOOLS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "update_task",
-      description: "Update an existing task.",
+      description: "Update an existing task. All fields are optional.",
       parameters: {
         type: "object",
         properties: {
@@ -146,7 +146,7 @@ const TOOLS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "update_note",
-      description: "Update an existing note.",
+      description: "Update an existing note. All fields are optional.",
       parameters: {
         type: "object",
         properties: {
@@ -194,7 +194,7 @@ const TOOLS: ToolDefinition[] = [
     type: "function",
     function: {
       name: "update_time_block",
-      description: "Update a time block on the calendar.",
+      description: "Update a time block on the calendar. All fields are optional.",
       parameters: {
         type: "object",
         properties: {
@@ -302,57 +302,73 @@ Answer questions directly from the data you fetch.`
   private async executeToolCall(call: any): Promise<any> {
     try {
       const rawArgs = JSON.parse(call.function.arguments) as Record<string, unknown>;
+      console.log(`[AI Tool Call] ${call.function.name}:`, rawArgs);
       const args = Object.fromEntries(
         Object.entries(rawArgs).filter(([, v]) => v !== null)
       ) as Record<string, string | number | boolean>;
       const toolName = call.function.name;
 
+      let result;
       switch (toolName) {
         case "get_tasks":
-          return await invoke("get_tasks", { fromDate: args.from_date as string || null });
+          result = await invoke("get_tasks", { fromDate: args.from_date as string || null });
+          break;
 
         case "get_notes":
-          return await invoke<Note[]>("get_notes");
+          result = await invoke<Note[]>("get_notes");
+          break;
 
         case "get_time_blocks_for_date":
-          return await invoke<TimeBlock[]>("get_time_blocks", { date: args.date as string });
+          result = await invoke<TimeBlock[]>("get_time_blocks", { date: args.date as string });
+          break;
 
         case "create_task":
-          return await invoke("create_task", { input: args });
+          result = await invoke("create_task", { input: args });
+          break;
 
         case "update_task":
-          return await invoke("update_task", { id: args.id, input: args });
+          result = await invoke("update_task", { id: args.id, input: args });
+          break;
 
         case "complete_task":
         case "delete_task":
-          return await invoke(toolName === "complete_task" ? "update_task" : "delete_task", {
+          result = await invoke(toolName === "complete_task" ? "update_task" : "delete_task", {
             id: args.id,
             ...(toolName === "complete_task" ? { input: { completed: true } } : {})
           });
+          break;
 
         case "create_note":
         case "update_note":
-          return await invoke(toolName, {
+          result = await invoke(toolName, {
             id: toolName === "update_note" ? args.id : undefined,
             input: args
           });
+          break;
 
         case "delete_note":
-          return await invoke("delete_note", { id: args.id });
+          result = await invoke("delete_note", { id: args.id });
+          break;
 
         case "create_time_block":
-          return await invoke("create_time_block", { input: args });
+          result = await invoke("create_time_block", { input: args });
+          break;
 
         case "update_time_block":
-          return await invoke("update_time_block", { id: args.id, input: args });
+          result = await invoke("update_time_block", { id: args.id, input: args });
+          break;
 
         case "delete_time_block":
-          return await invoke("delete_time_block", { id: args.id });
+          result = await invoke("delete_time_block", { id: args.id });
+          break;
 
         default:
-          return { error: `Unknown tool: ${toolName}` };
+          result = { error: `Unknown tool: ${toolName}` };
       }
+      console.log(`[AI Tool Result] ${toolName}:`, result);
+      return result;
     } catch (err) {
+      console.error(`[AI Tool Error] ${call.function.name}:`, err);
       return { error: String(err) };
     } finally {
       // Refresh UI after any tool mutation
