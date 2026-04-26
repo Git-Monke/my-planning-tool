@@ -14,20 +14,33 @@
   let {
     date,
     dayCount = 1,
+    startHour = 6,
+    endHour = 22,
     tasks = [],
     onDateChange,
     onTaskClick,
+    onHourRangeChange,
   }: {
     date: string; // YYYY-MM-DD - the first day in the range
     dayCount?: number;
+    startHour?: number;
+    endHour?: number;
     tasks?: Task[];
     onDateChange?: (date: string) => void;
     onTaskClick?: (task: Task) => void;
+    onHourRangeChange?: (start: number, end: number) => void;
   } = $props();
 
-  // Time range state (default 6 AM to 10 PM)
-  let startHour = $state(6);
-  let endHour = $state(22);
+  // Current time state for real-time indicator
+  let currentTime = $state(new Date());
+
+  // Timer for real-time updates (every 30 seconds)
+  $effect(() => {
+    const interval = setInterval(() => {
+      currentTime = new Date();
+    }, 30000);
+    return () => clearInterval(interval);
+  });
 
   // Calculate hour height in pixels (adjustable)
   const hourHeight = 60;
@@ -279,7 +292,9 @@
     const input = e.target as HTMLInputElement;
     const h = parseTimeToHours(input.value);
     if (!isNaN(h) && h >= 0 && h < 24) {
-      startHour = Math.floor(h);
+      const newStart = Math.floor(h);
+      startHour = newStart;
+      onHourRangeChange?.(newStart, endHour);
     }
   }
 
@@ -287,7 +302,9 @@
     const input = e.target as HTMLInputElement;
     const h = parseTimeToHours(input.value);
     if (!isNaN(h) && h > 0 && h <= 24) {
-      endHour = Math.ceil(h);
+      const newEnd = Math.ceil(h);
+      endHour = newEnd;
+      onHourRangeChange?.(startHour, newEnd);
     }
   }
 
@@ -395,8 +412,7 @@
 
             <!-- Current time indicator (only on today's column) -->
             {#if thisIsToday}
-              {@const now = new Date()}
-              {@const nowMinutes = now.getHours() * 60 + now.getMinutes()}
+              {@const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes()}
               {@const startMinutes = startHour * 60}
               {@const endMinutes = endHour * 60}
               {#if nowMinutes >= startMinutes && nowMinutes <= endMinutes}

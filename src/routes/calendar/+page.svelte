@@ -15,8 +15,42 @@
   import ClockIcon from "@lucide/svelte/icons/clock";
   import HourglassIcon from "@lucide/svelte/icons/hourglass";
 
+  // Calendar state with localStorage persistence
+  const STORAGE_KEY = "calendar_state";
+
+  function loadCalendarState() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          dayCount: parsed.dayCount ?? 1,
+          startHour: parsed.startHour ?? 6,
+          endHour: parsed.endHour ?? 22,
+        };
+      }
+    } catch (e) {
+      console.warn("Failed to load calendar state:", e);
+    }
+    return { dayCount: 1, startHour: 6, endHour: 22 };
+  }
+
+  function saveCalendarState(dayCount: number, startHour: number, endHour: number) {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ dayCount, startHour, endHour }),
+      );
+    } catch (e) {
+      console.warn("Failed to save calendar state:", e);
+    }
+  }
+
+  const initialState = loadCalendarState();
   let currentView = $state<"day" | "month">("day");
-  let dayCount = $state(1);
+  let dayCount = $state(initialState.dayCount);
+  let startHour = $state(initialState.startHour);
+  let endHour = $state(initialState.endHour);
   let selectedDate = $state(getTodayString());
   let allTasks = $state<Task[]>([]);
   let loading = $state(true);
@@ -25,11 +59,12 @@
   let screenWidth = $state(1200);
   const isWideScreen = $derived(screenWidth >= 800);
 
-  // Bound dayCount by screen width
+  // Bound dayCount by screen width and save state
   $effect(() => {
     if (!isWideScreen && dayCount > 1) {
       dayCount = 1;
     }
+    saveCalendarState(dayCount, startHour, endHour);
   });
 
   // Modal state
@@ -186,9 +221,16 @@
       <DayView
         date={selectedDate}
         {dayCount}
+        {startHour}
+        {endHour}
         tasks={allTasks}
         onDateChange={handleDateChange}
         onTaskClick={handleTaskClick}
+        onHourRangeChange={(start, end) => {
+          startHour = start;
+          endHour = end;
+          saveCalendarState(dayCount, start, end);
+        }}
       />
     {:else}
       <div
