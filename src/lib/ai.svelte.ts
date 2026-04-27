@@ -265,12 +265,15 @@ export class ChatState {
   }
 
   private async buildContextSystemPrompt(): Promise<Message> {
-    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const today = now.toLocaleDateString("en-CA"); // YYYY-MM-DD in local timezone
+    const time = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }); // HH:MM in 24hr format, local timezone
 
     return {
       role: "system",
       content: `You are a helpful AI assistant in a local-first productivity app. Be brief and get shit done. You manage tasks, notes, and calendar time blocks.
 Today's date is: ${today}.
+Current local time is: ${time}.
 
 TOOLS:
 - get_tasks: Get all tasks, optionally filtered by date (from_date: YYYY-MM-DD)
