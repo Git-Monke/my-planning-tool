@@ -14,6 +14,96 @@
   let tempKey = $state("");
   let scrollRef = $state<HTMLDivElement | null>(null);
 
+  // Map of tool names to friendly action labels
+  const TOOL_ACTIONS: Record<string, string> = {
+    get_tasks: "Fetching tasks",
+    get_notes: "Fetching notes",
+    get_date_range: "Fetching calendar data",
+    create_task: "Creating task",
+    update_task: "Updating task",
+    complete_task: "Completing task",
+    delete_task: "Deleting task",
+    create_note: "Creating note",
+    update_note: "Updating note",
+    delete_note: "Deleting note",
+    create_time_block: "Scheduling time block",
+    update_time_block: "Updating time block",
+    delete_time_block: "Deleting time block"
+  };
+
+  // Get friendly message for tool execution (while running)
+  function getToolExecutingMsg(toolName: string, args: string): string {
+    const action = TOOL_ACTIONS[toolName] || toolName;
+    try {
+      const parsed = JSON.parse(args);
+      // Extract title/name from various tools
+      const title = parsed.title || parsed.name;
+      if (title) {
+        return `${action}: "${title}"`;
+      }
+    } catch {}
+    return action;
+  }
+
+  // Get friendly completion message from tool result
+  function getToolCompletedMsg(toolName: string, result: string | null): string | null {
+    if (!result) return null;
+    try {
+      const parsed = JSON.parse(result);
+      // Check for errors first
+      if (parsed.error) {
+        return null;
+      }
+      
+      // Extract title from result objects (tasks, notes, time_blocks)
+      if (parsed.title || parsed.name) {
+        const title = parsed.title || parsed.name;
+        const pastTense = getPastTense(toolName);
+        return `${pastTense}: "${title}"`;
+      }
+      
+      // For deletes or updates where we don't get title back
+      if (toolName.includes("delete") || toolName.includes("complete")) {
+        const pastTense = getPastTense(toolName);
+        return pastTense;
+      }
+      
+      // For reads, don't show completion message (too noisy)
+      if (toolName.startsWith("get_")) {
+        return null;
+      }
+      
+      // Arrays of results (like multiple tasks) - don't show
+      if (Array.isArray(parsed) && parsed.length > 0 && !parsed[0]?.title) {
+        return null;
+      }
+    } catch {}
+    return null;
+  }
+
+  function getPastTense(toolName: string): string {
+    if (toolName === "create_task" || toolName === "create_note" || toolName === "create_time_block") {
+      return "Created";
+    }
+    if (toolName === "update_task" || toolName === "update_note" || toolName === "update_time_block") {
+      return "Updated";
+    }
+    if (toolName === "complete_task") {
+      return "Completed";
+    }
+    if (toolName === "delete_task" || toolName === "delete_note" || toolName === "delete_time_block") {
+      return "Deleted";
+    }
+    return "Done";
+  }
+
+  function getEntityType(toolName: string): string {
+    if (toolName.includes("task")) return "task";
+    if (toolName.includes("note")) return "note";
+    if (toolName.includes("time_block")) return "time block";
+    return "item";
+  }
+
   function scrollToBottom() {
     if (scrollRef) {
       scrollRef.scrollTop = scrollRef.scrollHeight;
@@ -103,7 +193,7 @@
           </div>
         {/if}
 
-        {#each chatState.messages.filter((m) => m.role !== "system" && !(m.role === "user" && (m.content.startsWith("Tool error:") || m.content.startsWith("The previous tool call failed")))) as msg}
+        {#each chatState.messages.filter((m) => m.role !== "system" && !(m.role === "user" && (m.content && m.content.startsWith("Tool error:") || m.content && m.content.startsWith("The previous tool call failed")))) as msg}
           <div
             class="flex flex-col {msg.role === 'user'
               ? 'items-end'
@@ -122,21 +212,25 @@
                 {#if msg.content}
                   {msg.content}
                 {:else if msg.tool_calls && msg.tool_calls.length > 0}
+                  {@const call = msg.tool_calls[0]}
+                  {@const msg_text = getToolExecutingMsg(call.function.name, call.function.arguments)}
                   <span
                     class="italic text-muted-foreground flex items-center gap-2"
                   >
-                    <Spinner class="h-3 w-3" />
-                    Executing tool: {msg.tool_calls[0].function.name}...
+                    {msg_text}...
                   </span>
                 {/if}
               </div>
             {:else if msg.role === "tool"}
-              {#if !msg.content.startsWith('Tool error:')}
-                <div
-                  class="text-xs text-muted-foreground flex items-center gap-1 pl-2"
-                >
-                  ✓ {msg.name} completed
-                </div>
+              {#if msg.content && !msg.content.startsWith('Tool error:')}
+                {@const completedMsg = getToolCompletedMsg(msg.name || '', msg.content)}
+                {#if completedMsg}
+                  <div
+                    class="text-xs text-muted-foreground flex items-center gap-1 pl-2"
+                  >
+                    ✓ {completedMsg}
+                  </div>
+                {/if}
               {/if}
             {/if}
           </div>
