@@ -7,6 +7,7 @@
   import { cn } from "$lib/utils";
   import ClockIcon from "@lucide/svelte/icons/clock";
   import HourglassIcon from "@lucide/svelte/icons/hourglass";
+  import Trash2Icon from "@lucide/svelte/icons/trash-2";
 
   let {
     task,
@@ -15,6 +16,7 @@
     onSave,
     onCancel,
     onStartEdit,
+    onDelete,
   }: {
     task: Task;
     editing?: boolean;
@@ -22,6 +24,7 @@
     onSave?: (task: Task) => void;
     onCancel?: (taskId: string) => void;
     onStartEdit?: (taskId: string) => void;
+    onDelete?: (taskId: string) => void;
   } = $props();
 
   // Time validation (accepts both 24h and 12h formats)
@@ -194,6 +197,14 @@
               min="1"
             />
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            class="h-6 w-6 flex justify-center text-muted-foreground/40 hover:text-destructive"
+            onclick={() => onDelete?.(task.id)}
+          >
+            <Trash2Icon class="size-4" />
+          </Button>
         </div>
       </div>
     </div>
@@ -239,24 +250,35 @@
           {/if}
         </div>
 
-        {#if task.due_time || task.duration}
-          <div
-            class="flex flex-col items-end gap-1.5 text-[11px] text-muted-foreground/70 shrink-0 tabular-nums font-medium pt-0.5"
+        <div class="flex items-center gap-2 shrink-0">
+          {#if task.due_time || task.duration}
+            <div
+              class="flex flex-col items-end gap-1.5 text-[11px] text-muted-foreground/70 shrink-0 tabular-nums font-medium pt-0.5"
+            >
+              {#if task.due_time}
+                <div class="flex items-center gap-1.5">
+                  <span>{task.due_time}</span>
+                  <ClockIcon class="size-3" />
+                </div>
+              {/if}
+              {#if task.duration}
+                <div class="flex items-center gap-1.5">
+                  <span>{task.duration}m</span>
+                  <HourglassIcon class="size-3" />
+                </div>
+              {/if}
+            </div>
+          {/if}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            class="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-destructive transition-opacity"
+            onclick={() => onDelete?.(task.id)}
           >
-            {#if task.due_time}
-              <div class="flex items-center gap-1.5">
-                <span>{task.due_time}</span>
-                <ClockIcon class="size-3" />
-              </div>
-            {/if}
-            {#if task.duration}
-              <div class="flex items-center gap-1.5">
-                <span>{task.duration}m</span>
-                <HourglassIcon class="size-3" />
-              </div>
-            {/if}
-          </div>
-        {/if}
+            <Trash2Icon class="size-4" />
+          </Button>
+        </div>
       </div>
     </div>
   </div>

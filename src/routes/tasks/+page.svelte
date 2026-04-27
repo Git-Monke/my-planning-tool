@@ -342,6 +342,7 @@
           onSave={handleSaveTask}
           onStartEdit={handleStartEdit}
           onCancel={handleCancelEdit}
+          onDelete={handleDeleteTask}
         />
 
         {#each datedGroups as group}
@@ -355,6 +356,7 @@
             onSave={handleSaveTask}
             onStartEdit={handleStartEdit}
             onCancel={handleCancelEdit}
+            onDelete={handleDeleteTask}
           />
         {/each}
 

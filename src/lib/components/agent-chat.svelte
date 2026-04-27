@@ -62,7 +62,7 @@
         return `${pastTense}: "${title}"`;
       }
       
-      // For deletes or updates where we don't get title back
+      // For deletes or updates where Noteswe don't get title back
       if (toolName.includes("delete") || toolName.includes("complete")) {
         const pastTense = getPastTense(toolName);
         return pastTense;
@@ -138,8 +138,8 @@
 
 <div class="flex w-full flex-1 flex-col min-h-0">
   <!-- Header -->
-  <div class="flex shrink-0 items-center justify-between border-b px-3 py-2">
-    <h2 class="text-sm font-medium">Agent chat</h2>
+  <div class="flex shrink-0 items-center justify-between border-b px-3 py-4">
+    <h1 class="text-xl font-semibold">Agent chat</h1>
     <div class="flex items-center gap-1">
       <Button
         variant="ghost"
