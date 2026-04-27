@@ -17,7 +17,8 @@
   // Map of tool names to friendly action labels
   const TOOL_ACTIONS: Record<string, string> = {
     get_tasks: "Fetching tasks",
-    get_notes: "Fetching notes",
+    list_notes: "Listing notes",
+    get_note: "Loading note",
     get_date_range: "Fetching calendar data",
     create_task: "Creating task",
     update_task: "Updating task",

@@ -81,7 +81,7 @@ Calendar view is just a query: all tasks where `due_date` is set OR `start_time`
 
 ### How it works
 1. User types a message in the AI chat panel
-2. Frontend builds context: all notes (summarized if large), all tasks, today's date
+2. System prompt includes today's date/time; the model uses tools to read data (e.g. list note titles, then fetch full note by id) instead of loading every note body up front
 3. Request sent to Groq API with tools defined
 4. LLM returns tool calls and/or a text response
 5. Frontend executes tool calls → invokes Tauri Rust commands to mutate SQLite
@@ -93,6 +93,8 @@ API calls made from the frontend. Rust handles data only. API key stored via Tau
 ### Tools
 
 ```
+list_notes()              // id + title
+get_note(id)              // full note (title, description, timestamps)
 create_note(title, body)
 update_note(id, title?, body?)
 delete_note(id)

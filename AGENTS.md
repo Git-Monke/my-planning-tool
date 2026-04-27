@@ -35,7 +35,7 @@
 | Path | Description |
 |------|-------------|
 | `src/main.rs` | Entry point, calls `run()` |
-| `src/lib.rs` | **Tauri commands**: `greet`, `get_tasks` (opt `from_date` filter), `create_task`, `update_task`, `delete_task`, `get_notes`, `create_note`, `update_note`, `delete_note`, `get_time_blocks` (opt `date` filter), `get_date_range`. Database setup in `setup_db()` → SQLite at `{app_data}/nota.db`, auto-runs migrations |
+| `src/lib.rs` | **Tauri commands**: `greet`, `get_tasks` (opt `from_date` filter), `create_task`, `update_task`, `delete_task`, `get_notes`, `list_notes` (id+title), `get_note` (by id), `create_note`, `update_note`, `delete_note`, `get_time_blocks` (opt `date` filter), `get_date_range`. Database setup in `setup_db()` → SQLite at `{app_data}/nota.db`, auto-runs migrations |
 | `tauri.conf.json` | App config (800x600 default) |
 | `migrations/*.sql` | Database migrations |
 

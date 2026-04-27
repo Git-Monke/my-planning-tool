@@ -4,6 +4,13 @@ use std::fs;
 use tauri::Manager;
 use uuid::Uuid;
 
+// Id + title for lightweight listing (e.g. AI tool)
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct NoteSummary {
+    pub id: String,
+    pub title: String,
+}
+
 // Note structure for database queries
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Note {
@@ -132,6 +139,29 @@ async fn get_notes(pool: tauri::State<'_, SqlitePool>) -> Result<Vec<Note>, Stri
     .map_err(|e| e.to_string())?;
 
     Ok(notes)
+}
+
+#[tauri::command]
+async fn list_notes(pool: tauri::State<'_, SqlitePool>) -> Result<Vec<NoteSummary>, String> {
+    let notes = sqlx::query_as::<_, NoteSummary>(
+        "SELECT id, title FROM notes ORDER BY updated_at DESC"
+    )
+    .fetch_all(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(notes)
+}
+
+#[tauri::command]
+async fn get_note(pool: tauri::State<'_, SqlitePool>, id: String) -> Result<Note, String> {
+    let note = sqlx::query_as::<_, Note>(
+        "SELECT id, title, description, created_at, updated_at FROM notes WHERE id = ?"
+    )
+    .bind(&id)
+    .fetch_optional(pool.inner())
+    .await
+    .map_err(|e| e.to_string())?;
+    note.ok_or_else(|| format!("Note not found: {id}"))
 }
 
 #[tauri::command]
@@ -514,6 +544,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             get_notes,
+            list_notes,
+            get_note,
             create_note,
             update_note,
             delete_note,

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Task, Note, TimeBlock } from "./types.js";
+import type { Task, Note, NoteSummary, TimeBlock } from "./types.js";
 
 export type Role = "system" | "user" | "assistant" | "tool";
 
@@ -41,11 +41,25 @@ const TOOLS: ToolDefinition[] = [
   {
     type: "function",
     function: {
-      name: "get_notes",
-      description: "Get all notes.",
+      name: "list_notes",
+      description: "List all notes with id and title only. Use get_note to load description/body for a specific id.",
       parameters: {
         type: "object",
         properties: {}
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_note",
+      description: "Get the full content of a single note by id (title, description, timestamps).",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string", description: "The note's id from list_notes" }
+        },
+        required: ["id"]
       }
     }
   },
@@ -277,7 +291,8 @@ Current local time is: ${time}.
 
 TOOLS:
 - get_tasks: Get all tasks, optionally filtered by date (from_date: YYYY-MM-DD)
-- get_notes: Get all notes
+- list_notes: List note id + title (small payload)
+- get_note: Get one note by id (full content)
 - get_date_range: Get all tasks and time blocks for a date range (start_date/end_date: YYYY-MM-DD required)
 - create_task: Create task (title required, optional notes/priority/due_date/due_time/duration)
 - complete_task: Mark task complete (id required)
@@ -295,6 +310,7 @@ RULES:
 - NEVER include fields with null values in tool calls
 - NEVER show users IDs - just format data nicely
 - Unless you can already see the relevant data, call get_date_range first to find what you need to know before making changes
+- For notes: call list_notes to see id + title; call get_note only for ids whose body you need (saves context)
 - After creating/updating/deleting time blocks, use get_date_range to confirm the changes
 - Priorty 1 is the LOWEST priority, priority 3 is the HIGHEST
 - DO NOT RETURN DATA AS A TABLE, The user cannot read tables. 
@@ -318,8 +334,12 @@ Answer questions directly from the data you fetch.`
           result = await invoke("get_tasks", { fromDate: args.from_date as string || null });
           break;
 
-        case "get_notes":
-          result = await invoke<Note[]>("get_notes");
+        case "list_notes":
+          result = await invoke<NoteSummary[]>("list_notes");
+          break;
+
+        case "get_note":
+          result = await invoke<Note>("get_note", { id: args.id });
           break;
 
         case "get_date_range":

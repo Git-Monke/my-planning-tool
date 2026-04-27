@@ -6,6 +6,12 @@ export interface Note {
 	updated_at: string;
 }
 
+/** Shallow row for id + title lists (e.g. AI `list_notes`). */
+export interface NoteSummary {
+	id: string;
+	title: string;
+}
+
 export interface Task {
 	id: string;
 	title: string;
