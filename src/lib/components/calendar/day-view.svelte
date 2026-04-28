@@ -75,6 +75,24 @@
     });
   });
 
+  // Shift + wheel on day grid: change range start by one day per event (chevrons).
+  // Positive dominant delta (e.g. scroll down) → previous day.
+  $effect(() => {
+    const el = gridScrollEl;
+    if (!el) return;
+    function onWheel(e: WheelEvent) {
+      if (!e.shiftKey || !onDateChange) return;
+      const dominant =
+        Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (dominant === 0) return;
+      e.preventDefault();
+      if (dominant > 0) goToPreviousDay();
+      else goToNextDay();
+    }
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  });
+
   // Time blocks state - map of date to blocks
   let timeBlocksMap = $state<Map<string, TimeBlock[]>>(new Map());
   let loadingBlocks = $state(true);

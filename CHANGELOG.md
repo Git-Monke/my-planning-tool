@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Calendar day view**: Hold Shift and use the mouse wheel (or horizontal wheel) over the day timeline to move the view’s start date backward or forward one day per step—same as the header chevrons—for 1-, 3-, and 7-day layouts.
+
 ### Changed
 
 - **Calendar day view**: The timeline always shows the full day (12 AM–11 PM) at a fixed scale (60 px per hour, 1 px per minute); the previous configurable visible-hour range was removed. Opening the view defaults to 6:00 AM when no scroll position is saved, and the vertical scroll position is persisted in local storage.
