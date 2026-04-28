@@ -130,14 +130,6 @@
     selectedDate = newDate;
   }
 
-  function handleViewChange(view: "day" | "month") {
-    currentView = view;
-    // Reset dayCount when switching away from day view
-    if (view !== "day") {
-      dayCount = 1;
-    }
-  }
-
   function handleTaskClick(task: Task) {
     // Open modal with task details
     selectedTask = task;
@@ -207,7 +199,7 @@
       {#if currentView === "day"}
         <DayCountSwitcher bind:dayCount disabled={!isWideScreen} />
       {/if}
-      <ViewToggle bind:currentView onViewChange={handleViewChange} />
+      <ViewToggle bind:currentView />
     </div>
   </div>
 
