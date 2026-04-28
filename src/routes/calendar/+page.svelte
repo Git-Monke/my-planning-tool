@@ -23,24 +23,33 @@
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
+        const scroll = parsed.dayScrollTop;
         return {
           dayCount: parsed.dayCount ?? 1,
-          startHour: parsed.startHour ?? 6,
-          endHour: parsed.endHour ?? 22,
+          dayScrollTop:
+            typeof scroll === "number" && !Number.isNaN(scroll)
+              ? scroll
+              : undefined,
         };
       }
     } catch (e) {
       console.warn("Failed to load calendar state:", e);
     }
-    return { dayCount: 1, startHour: 6, endHour: 22 };
+    return { dayCount: 1, dayScrollTop: undefined };
   }
 
-  function saveCalendarState(dayCount: number, startHour: number, endHour: number) {
+  function saveCalendarState(
+    dayCount: number,
+    dayScrollTop: number | undefined,
+  ) {
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ dayCount, startHour, endHour }),
-      );
+      const payload: { dayCount: number; dayScrollTop?: number } = {
+        dayCount,
+      };
+      if (dayScrollTop !== undefined) {
+        payload.dayScrollTop = dayScrollTop;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
       console.warn("Failed to save calendar state:", e);
     }
@@ -49,8 +58,7 @@
   const initialState = loadCalendarState();
   let currentView = $state<"day" | "month">("day");
   let dayCount = $state(initialState.dayCount);
-  let startHour = $state(initialState.startHour);
-  let endHour = $state(initialState.endHour);
+  let dayScrollTop = $state<number | undefined>(initialState.dayScrollTop);
   let selectedDate = $state(getTodayString());
   let allTasks = $state<Task[]>([]);
   let loading = $state(true);
@@ -64,7 +72,7 @@
     if (!isWideScreen && dayCount > 1) {
       dayCount = 1;
     }
-    saveCalendarState(dayCount, startHour, endHour);
+    saveCalendarState(dayCount, dayScrollTop);
   });
 
   // Modal state
@@ -213,15 +221,12 @@
       <DayView
         date={selectedDate}
         {dayCount}
-        {startHour}
-        {endHour}
+        savedScrollTop={dayScrollTop}
         tasks={allTasks}
         onDateChange={handleDateChange}
         onTaskClick={handleTaskClick}
-        onHourRangeChange={(start, end) => {
-          startHour = start;
-          endHour = end;
-          saveCalendarState(dayCount, start, end);
+        onScrollTopChange={(y) => {
+          dayScrollTop = y;
         }}
       />
     {:else}

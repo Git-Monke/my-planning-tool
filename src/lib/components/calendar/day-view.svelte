@@ -1,34 +1,32 @@
 <script lang="ts">
   import type { Task, TimeBlock } from "$lib/types";
-  import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
   import TaskMarker from "./task-marker.svelte";
   import TaskBlock from "./task-block.svelte";
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
-  import ClockIcon from "@lucide/svelte/icons/clock";
   import { invoke } from "@tauri-apps/api/core";
   import { Spinner } from "$lib/components/ui/spinner";
-  import { chatState } from "$lib/ai.svelte.ts";
+  import { chatState } from "$lib/ai.svelte.js";
+  import { onMount, tick } from "svelte";
 
   let {
     date,
     dayCount = 1,
-    startHour = 6,
-    endHour = 22,
     tasks = [],
+    savedScrollTop,
     onDateChange,
     onTaskClick,
-    onHourRangeChange,
+    onScrollTopChange,
   }: {
     date: string; // YYYY-MM-DD - the first day in the range
     dayCount?: number;
-    startHour?: number;
-    endHour?: number;
     tasks?: Task[];
+    /** When set, restores vertical scroll (px). When unset, opens at 6:00 AM. */
+    savedScrollTop?: number;
     onDateChange?: (date: string) => void;
     onTaskClick?: (task: Task) => void;
-    onHourRangeChange?: (start: number, end: number) => void;
+    onScrollTopChange?: (scrollTop: number) => void;
   } = $props();
 
   // Current time state for real-time indicator
@@ -42,8 +40,40 @@
     return () => clearInterval(interval);
   });
 
-  // Calculate hour height in pixels (adjustable)
   const hourHeight = 60;
+  const MINUTES_PER_DAY = 24 * 60;
+  const DEFAULT_SCROLL_TOP = 6 * 60;
+
+  let gridScrollEl = $state<HTMLDivElement | null>(null);
+  let scrollPersistTimer: ReturnType<typeof setTimeout> | null = null;
+  let scrollRestored = $state(false);
+  let suppressScrollPersist = $state(true);
+
+  function handleGridScroll() {
+    if (!gridScrollEl || !onScrollTopChange || suppressScrollPersist) return;
+    if (scrollPersistTimer) clearTimeout(scrollPersistTimer);
+    scrollPersistTimer = setTimeout(() => {
+      onScrollTopChange?.(gridScrollEl!.scrollTop);
+      scrollPersistTimer = null;
+    }, 150);
+  }
+
+  // Apply saved or default (6 AM) scroll once the scroller is bound
+  $effect(() => {
+    if (scrollRestored || !gridScrollEl) return;
+    scrollRestored = true;
+    const el = gridScrollEl;
+    const y = savedScrollTop !== undefined ? savedScrollTop : DEFAULT_SCROLL_TOP;
+    suppressScrollPersist = true;
+    tick().then(() => {
+      requestAnimationFrame(() => {
+        el.scrollTop = y;
+        setTimeout(() => {
+          suppressScrollPersist = false;
+        }, 200);
+      });
+    });
+  });
 
   // Time blocks state - map of date to blocks
   let timeBlocksMap = $state<Map<string, TimeBlock[]>>(new Map());
@@ -89,6 +119,8 @@
   // Get date range for current view
   const dateRange = $derived(getDateRange(date, dayCount));
 
+  const gridHeightPx = MINUTES_PER_DAY;
+
   // Fetch time blocks when date range changes
   $effect(() => {
     fetchTimeBlocksForRange(dateRange);
@@ -114,13 +146,14 @@
     );
   });
 
-  import { onMount } from "svelte";
   onMount(() => {
     const handleRefresh = () => fetchTimeBlocksForRange(dateRange);
     window.addEventListener("app-refresh-data", handleRefresh);
+
     return () => {
       window.removeEventListener("app-refresh-data", handleRefresh);
       chatState.updateUserContext(null);
+      if (scrollPersistTimer) clearTimeout(scrollPersistTimer);
     };
   });
 
@@ -236,20 +269,26 @@
     return grouped;
   }
 
-  // Generate hours array for the grid
+  // Hours 0–23 (12 AM through 11 PM)
   const hours = $derived(() => {
-    const result = [];
-    for (let h = startHour; h <= endHour; h++) {
+    const result: number[] = [];
+    for (let h = 0; h < 24; h++) {
       result.push(h);
     }
     return result;
   });
 
-  // Calculate top offset for a time (in minutes from midnight)
+  /** Top edge in px; 1px ≈ 1 minute from midnight. */
   function getTopOffset(time: string | undefined): number {
-    const minutes = timeToMinutes(time);
-    const startMinutes = startHour * 60;
-    return ((minutes - startMinutes) / 60) * hourHeight;
+    return Math.min(timeToMinutes(time), MINUTES_PER_DAY - 1);
+  }
+
+  function getBlockLayout(block: TimeBlock): { top: number; height: number } {
+    const startMin = timeToMinutes(block.start_time.slice(0, 5));
+    const top = Math.min(startMin, MINUTES_PER_DAY - 1);
+    const rawHeight = (block.duration / 60) * hourHeight;
+    const maxHeight = Math.max(0, MINUTES_PER_DAY - top);
+    return { top, height: Math.min(rawHeight, maxHeight) };
   }
 
   // Format hour for display
@@ -287,33 +326,11 @@
   // Check if first date in range is today
   const showingToday = $derived(isToday(date));
 
-  // Handle time input changes
-  function handleStartTimeChange(e: Event) {
-    const input = e.target as HTMLInputElement;
-    const h = parseTimeToHours(input.value);
-    if (!isNaN(h) && h >= 0 && h < 24) {
-      const newStart = Math.floor(h);
-      startHour = newStart;
-      onHourRangeChange?.(newStart, endHour);
-    }
-  }
-
-  function handleEndTimeChange(e: Event) {
-    const input = e.target as HTMLInputElement;
-    const h = parseTimeToHours(input.value);
-    if (!isNaN(h) && h > 0 && h <= 24) {
-      const newEnd = Math.ceil(h);
-      endHour = newEnd;
-      onHourRangeChange?.(startHour, newEnd);
-    }
-  }
-
   // Calculate column width based on dayCount
   const columnWidth = $derived(dayCount > 1 ? `${100 / dayCount}%` : "100%");
 </script>
 
 <div class="flex flex-col h-full">
-  <!-- Header with date navigation and time range inputs -->
   <div class="flex items-center justify-between gap-4 px-4 py-3 border-b">
     <div class="flex items-center gap-2">
       <Button variant="ghost" size="icon" onclick={goToPreviousDay}>
@@ -337,28 +354,6 @@
         <ChevronRight class="size-4" />
       </Button>
     </div>
-
-    <!-- Time range inputs -->
-    <div class="flex items-center gap-2">
-      <ClockIcon class="size-4 text-muted-foreground" />
-      <div class="flex items-center gap-1">
-        <Input
-          type="text"
-          value={formatHour(startHour)}
-          onchange={handleStartTimeChange}
-          class="h-8 w-20 text-xs text-center"
-          placeholder="6 AM"
-        />
-        <span class="text-xs text-muted-foreground">to</span>
-        <Input
-          type="text"
-          value={formatHour(endHour)}
-          onchange={handleEndTimeChange}
-          class="h-8 w-20 text-xs text-center"
-          placeholder="10 PM"
-        />
-      </div>
-    </div>
   </div>
 
   <div class="flex top-0 z-35 bg-background border-b">
@@ -376,14 +371,12 @@
     {/each}
   </div>
   <!-- Day view grid with N columns -->
-  <div class="flex-1 overflow-y-auto">
-    <!-- Sticky header row -->
-
-    <!-- Scrollable content -->
-    <div
-      class="flex"
-      style="height: {(endHour - startHour + 1) * hourHeight}px;"
-    >
+  <div
+    class="flex-1 overflow-y-auto min-h-0"
+    bind:this={gridScrollEl}
+    onscroll={handleGridScroll}
+  >
+    <div class="flex" style="height: {gridHeightPx}px;">
       {#each dateRange as dateStr, colIndex}
         {@const thisIsToday = isToday(dateStr)}
         {@const dayTasks = getTasksForDate(tasks, dateStr)}
@@ -392,8 +385,7 @@
 
         <div
           class="relative flex-shrink-0 border-r last:border-r-0"
-          style="width: {columnWidth}; height: {(endHour - startHour + 1) *
-            hourHeight}px;"
+          style="width: {columnWidth}; height: {gridHeightPx}px;"
         >
           <!-- Hour grid lines -->
           <div class="relative h-full">
@@ -412,12 +404,10 @@
 
             <!-- Current time indicator (only on today's column) -->
             {#if thisIsToday}
-              {@const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes()}
-              {@const startMinutes = startHour * 60}
-              {@const endMinutes = endHour * 60}
-              {#if nowMinutes >= startMinutes && nowMinutes <= endMinutes}
-                {@const topOffset =
-                  ((nowMinutes - startMinutes) / 60) * hourHeight}
+              {@const nowMinutes =
+                currentTime.getHours() * 60 + currentTime.getMinutes()}
+              {#if nowMinutes >= 0 && nowMinutes < MINUTES_PER_DAY}
+                {@const topOffset = nowMinutes}
                 <div
                   class="absolute left-0 right-0 z-30 pointer-events-none"
                   style="top: {topOffset}px;"
@@ -449,13 +439,12 @@
                   created_at: block.created_at,
                   updated_at: block.updated_at,
                 }}
-                {@const top = getTopOffset(block.start_time)}
-                {@const height = (block.duration / 60) * hourHeight}
+                {@const layout = getBlockLayout(block)}
                 {@const adjacentClasses = getAdjacentClasses(i, dayBlocks)}
                 <TaskBlock
                   {task}
-                  topOffset={top}
-                  {height}
+                  topOffset={layout.top}
+                  height={layout.height}
                   {onTaskClick}
                   {adjacentClasses}
                 />
