@@ -17,6 +17,7 @@
     onCancel,
     onStartEdit,
     onDelete,
+    onPersistCompletion,
   }: {
     task: Task;
     editing?: boolean;
@@ -25,6 +26,8 @@
     onCancel?: (taskId: string) => void;
     onStartEdit?: (taskId: string) => void;
     onDelete?: (taskId: string) => void;
+    /** Called after `task.completed` is toggled (e.g. persist to backend). */
+    onPersistCompletion?: (task: Task) => void;
   } = $props();
 
   // Time validation (accepts both 24h and 12h formats)
@@ -218,6 +221,7 @@
     <div class="pt-0.5">
       <Checkbox
         bind:checked={task.completed}
+        onCheckedChange={() => onPersistCompletion?.(task)}
         class={cn("size-5 rounded-lg transition-colors", checkboxClass)}
       />
     </div>

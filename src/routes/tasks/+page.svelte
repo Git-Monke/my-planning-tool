@@ -229,6 +229,11 @@
     }
   }
 
+  function handlePersistCompletion(task: Task) {
+    if (!task.title.trim()) return;
+    handleUpdateTask(task);
+  }
+
   function handleStartEdit(taskId: string) {
     editingTaskId = taskId;
   }
@@ -343,6 +348,7 @@
           onStartEdit={handleStartEdit}
           onCancel={handleCancelEdit}
           onDelete={handleDeleteTask}
+          onPersistCompletion={handlePersistCompletion}
         />
 
         {#each datedGroups as group}
@@ -357,6 +363,7 @@
             onStartEdit={handleStartEdit}
             onCancel={handleCancelEdit}
             onDelete={handleDeleteTask}
+            onPersistCompletion={handlePersistCompletion}
           />
         {/each}
 

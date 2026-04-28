@@ -14,7 +14,8 @@
     onSave,
     onCancel,
     onStartEdit,
-    onDelete
+    onDelete,
+    onPersistCompletion,
   }: { 
     title: string; 
     tasks: Task[];
@@ -26,6 +27,7 @@
     onCancel: (taskId: string) => void;
     onStartEdit?: (taskId: string) => void;
     onDelete?: (taskId: string) => void;
+    onPersistCompletion?: (task: Task) => void;
   } = $props();
 
   // Sort tasks: new task first, then by priority
@@ -71,6 +73,7 @@
         onCancel={onCancel}
         onStartEdit={onStartEdit}
         onDelete={onDelete}
+        onPersistCompletion={onPersistCompletion}
       />
     {/each}
   </div>
