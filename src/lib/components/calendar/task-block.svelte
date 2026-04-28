@@ -93,7 +93,7 @@
       {#if task.notes}
         <p
           class={cn(
-            "text-xs leading-relaxed truncate mt-0.5 opacity-75",
+            "text-xs leading-relaxed mt-0.5 opacity-75",
             colors.text,
           )}
         >
